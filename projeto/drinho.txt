@@ -1,0 +1,10 @@
+<table border="1">
+ <tr>
+    <th>nome:</th>
+    <td>Fabiano</td>
+ </tr>
+ <tr>
+    <th>idade:</th>
+    <td>44</td
+</tr>
+</table>
