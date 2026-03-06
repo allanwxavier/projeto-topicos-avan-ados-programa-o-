@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 
 // DTOs e Models locais (certifique-se de que os caminhos abaixo existam ou coloque-os na mesma pasta)
 import 'package:meu_projeto_faculdade/dtos/user_dto.dart';
-import 'package:meu_projeto_faculdade/reuniao/checkBoxModel.dart';
+import 'package:meu_projeto_faculdade/reuniao/checkbox_model.dart';
 import 'package:meu_projeto_faculdade/widgets/dropdown_customer.dart';
 import 'package:meu_projeto_faculdade/widgets/text_form_field.dart';
 
@@ -42,10 +42,10 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   final _horaFimController = TextEditingController();
   final _buscaParticipanteController = TextEditingController();
   
-  List<dynamic> _listaUsuariosBusca = [];
+  
   final List<CheckBoxModel> _listaParticipantes = [];
   List<dynamic> _selectProjeto = [];
-  bool _isLoading = false;
+  
 
   @override
   void initState() {
