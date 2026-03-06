@@ -10,16 +10,15 @@ class CheckBoxModel {
     required this.texto,
     required this.idSetor,
     required this.nomeSetor,
-    required this.checked,
+    this.checked = false,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'idUsuario': idUsuario,
-      'texto': texto,
+      'nome': texto,
       'idSetor': idSetor,
       'nomeSetor': nomeSetor,
-      'checked': checked,
     };
   }
 }
