@@ -200,7 +200,7 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
             : Wrap(
                 spacing: 8,
                 children: _listaParticipantes.map((p) => Chip(
-                  label: Text(p!.texto, style: const TextStyle(fontSize: 11)),
+                  label: Text(p.texto, style: const TextStyle(fontSize: 11)),
                   onDeleted: () => setState(() => _listaParticipantes.remove(p)),
                 )).toList(),
               ),
