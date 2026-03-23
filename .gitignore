@@ -46,6 +46,7 @@ app.*.map.json
 
 # Sgurança e configurações locais
 .env
+node_modules/
 .env.local
 .env.development.local
 .env.test.local
