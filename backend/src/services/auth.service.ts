@@ -1,7 +1,7 @@
-import {AuthRepositories} from '../repositories/auth.repository';
+import {AuthRepository} from '../repositories/auth.repository';
 import crypto from 'crypto';
 
-const usuario = await AuthRepository ()
+const authRepository = new AuthRepository();
 
 export class AuthService {
     async login(name: string, password: string) {

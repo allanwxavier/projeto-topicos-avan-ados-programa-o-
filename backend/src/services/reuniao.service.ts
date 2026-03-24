@@ -11,7 +11,7 @@ export class ReuniaoService {
     return await reuniaoRepository.create(dados);
   }
 
-  async adicionarParticipante(idReuniao: number, idParticipante: number) {
+  async adcionarParticipante(idReuniao: number, idParticipante: number) {
     return await reuniaoRepository.addParticipante(idReuniao, idParticipante);
   }
 
