@@ -1,23 +1,7 @@
 # Variáveis de ambiente
 .env
-
-# Dependências
+__pycache__/
+venv/
+*.pyc
 node_modules/
-
-# Build gerado pelo TypeScript
-dist/
-
-# Mapas de debug
-*.js.map
-
-# Logs
-*.log
-npm-debug.log*
-
-# Sistema operacional
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
+/src/generated/prisma

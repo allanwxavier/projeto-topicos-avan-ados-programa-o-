@@ -1,0 +1,45 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int @id  @default(autoincrement())
+  name      String
+  password  String
+  token     String?
+  criadoEm  DateTime @default(now())
+
+  participacoes ParticipanteReuniao[]
+
+  @@map("usuarios")
+}
+
+model Reuniao {
+  id Int       @id      @default(autoincrement())
+  assunto      String
+  local        String
+  data         String
+  horaInicio   String
+  horaFim      String
+  criadoEm     DateTime @default(now())
+
+  participantes ParticipanteReuniao[]
+
+  @@map("reunioes")
+}
+
+model ParticipanteReuniao {
+  id             Int @id @default(autoincrement())
+  idReuniao      Int
+  idParticipante Int
+
+  reuniao Reuniao @relation(fields: [idReuniao], references: [id])
+  usuario Usuario @relation(fields: [idParticipante], references: [id])
+
+  @@map("participantes_reuniao")
+}
