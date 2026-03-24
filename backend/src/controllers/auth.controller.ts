@@ -1,10 +1,10 @@
-import {Request, Response} from 'express';
-import {AuthService} from '../services/auth.service':
+import { Request, Response } from 'express';
+import {AuthService} from '../services/auth.service';
 
 const authService = new AuthService();
 
-export class authController {
-    async login(req: Request, res: Response){
+export const authController = {
+    login: async (req: Request, res: Response) => {
         try {
             const {name, password} = req.body;
 
