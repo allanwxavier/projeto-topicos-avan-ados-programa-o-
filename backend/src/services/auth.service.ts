@@ -1,17 +1,18 @@
 import {AuthRepository} from '../repositories/auth.repository';
 import { sign } from 'jsonwebtoken';
+import * as bcrypt from 'bcrypt';
 import 'dotenv/config';
 
 const authRepository = new AuthRepository();
 const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export class AuthService {
-    async login(name: string, password: string) {
+    async login(name: string, passwordAttemp: string) {
         const usuario = await authRepository.findByName(name);
 
         if (!usuario) return null;
 
-        const senhaCorreta = usuario.password === password;
+        const senhaCorreta = await bcrypt.compare(passwordAttemp, usuario.password);
         if (!senhaCorreta) return null;
 
         const token = sign(
