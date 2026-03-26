@@ -9,7 +9,8 @@ import reuniaoRoutes from './routes/reuniao.routes';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.API_PORT || 8080;
+// Garante que a porta seja tratada como número
+const PORT = parseInt(process.env.API_PORT as string, 10) || 8080;
 
 app.use(cors());
 app.use(express.json());
@@ -22,8 +23,9 @@ app.get('/', (req, res) => {
 });
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`Servidor rodando em http://localhost:${PORT}`);
+  
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
   });
 }
 
