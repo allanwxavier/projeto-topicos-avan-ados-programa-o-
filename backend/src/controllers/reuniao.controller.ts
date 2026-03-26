@@ -23,7 +23,7 @@ export class ReuniaoController{
     async adicionarParticipante(req: Request, res: Response) {
     try {
       const { idReuniao, idParticipante } = req.body;
-      await reuniaoService.adcionarParticipante(idReuniao, idParticipante);
+      await reuniaoService.adicionarParticipante(idReuniao, idParticipante);
       res.json({ status: 'ok', message: 'Participante adicionado' });
     } catch (error) {
       res.status(500).json({ status: 'error', message: 'Erro ao adicionar participante' });
