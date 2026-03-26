@@ -1,32 +1,33 @@
 import { Request, Response, NextFunction } from "express";
-import { PrismaClient } from "@prisma/client";
+import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export async function authMiddleware(
     req: Request,
     res: Response,
     next: NextFunction
-){
-    const token = req.body.token || req.headers.authorization;
+) {
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
             status: 'error',
             message: 'Token não informado.'
         });
     }
 
-    const usuario = await prisma.usuario.findFirst({
-        where: {token}
-    });
-    
-    if (!usuario) {
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        (req as any).user = decoded;
+        return next();
+    } catch(error) {
         return res.status(401).json({
             status: 'error',
-            message: 'Token inválido ou expirado.'
+            message: 'Token invalido ou expirado'
         });
     }
-
-    next();
 }
