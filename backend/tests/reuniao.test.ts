@@ -29,13 +29,13 @@ describe('POST /api/v1/reunioes', () => {
     const res = await request(app)
       .post('/api/v1/reunioes')
       .send({
-        titulo: "Reunião de teste",
+        assunto: "Reunião de teste",
         local: "AUDITÓRIO",
         data: "22/03/2026",
-        inicio: "14:00",
-        fim: "15:00"
+        horaInicio: "14:00",
+        horaFim: "15:00"
       });
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(201);
     expect(res.body.status).toBe('ok');
   });
 });
