@@ -9,12 +9,17 @@ Future getParticipantes(idReuniao) async {
   if (userJson == null) return null;
 
   final user = User.fromJson(json.decode(userJson));
-  var url = Uri.parse('http://10.0.2.2:8080/api/v1/reuniao/participantes/listar');
-  
-  var resposta = await http.post(url, body: {
-    'idReuniao': idReuniao.toString(),
-    'token': user.token,
-  });
+  var url = Uri.parse(
+    'http://10.0.2.2:8080/api/v1/reuniao/participantes/listar',
+  );
+
+  var resposta = await http.post(
+    url,
+    body: {
+      'idReuniao': idReuniao.toString(),
+      //'token': 'Authorization': 'Bearer ${user.token}'
+    },
+  );
 
   if (resposta.statusCode == 200) {
     var decoded = jsonDecode(resposta.body);

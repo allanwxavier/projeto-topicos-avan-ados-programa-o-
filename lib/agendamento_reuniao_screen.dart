@@ -1,10 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
-
-// DTOs e Models locais (certifique-se de que os caminhos abaixo existam ou coloque-os na mesma pasta)
 import 'package:meu_projeto_faculdade/dtos/user_dto.dart';
 import 'package:meu_projeto_faculdade/reuniao/checkbox_model.dart';
 import 'package:meu_projeto_faculdade/widgets/dropdown_customer.dart';
@@ -20,9 +19,6 @@ class CreateReuniaoScreen extends StatefulWidget {
 
 class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   final _formKey = GlobalKey<FormState>();
-  
-  // URL genérica para fins acadêmicos
-  final String baseUrl = 'http://10.0.2.2:8080/api/v1';
 
   final List<Map<String, dynamic>> _selectLocal = [
     {'projeto_id': 1, 'projeto_nome_format': 'AUDITÓRIO'},
@@ -41,11 +37,9 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   final _horaInicioController = TextEditingController();
   final _horaFimController = TextEditingController();
   final _buscaParticipanteController = TextEditingController();
-  
-  
+
   final List<CheckBoxModel> _listaParticipantes = [];
   List<dynamic> _selectProjeto = [];
-  
 
   @override
   void initState() {
@@ -58,7 +52,9 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
     DateTime agora = DateTime.now();
     _dataReuniaoController.text = DateFormat('dd/MM/yyyy').format(agora);
     _horaInicioController.text = DateFormat('HH:mm').format(agora);
-    _horaFimController.text = DateFormat('HH:mm').format(agora.add(const Duration(hours: 1)));
+    _horaFimController.text = DateFormat(
+      'HH:mm',
+    ).format(agora.add(const Duration(hours: 1)));
   }
 
   Future<void> _carregarDadosIniciais() async {
@@ -79,8 +75,18 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
         title: const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Nova Reunião', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("Organize sua próxima reunião", style: TextStyle(color: Colors.white70, fontSize: 12)),
+            Text(
+              'Nova Reunião',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              "Organize sua próxima reunião",
+              style: TextStyle(color: Colors.white70, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -91,7 +97,9 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
               height: 40,
               decoration: const BoxDecoration(
                 color: Color(0xFF537686),
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(30),
+                ),
               ),
             ),
             Transform.translate(
@@ -99,7 +107,9 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 15),
                 child: Card(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(25),
+                  ),
                   elevation: 4,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
@@ -111,15 +121,27 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                             label: "Projeto",
                             hinttext: "Selecione um projeto",
                             icon: const Icon(Icons.search, size: 18),
-                            itens: _selectProjeto.isEmpty ? [{'projeto_id': 0, 'projeto_nome_format': 'Projeto Acadêmico X'}] : _selectProjeto,
+                            itens: _selectProjeto.isEmpty
+                                ? [
+                                    {
+                                      'projeto_id': 0,
+                                      'projeto_nome_format':
+                                          'Projeto Acadêmico X',
+                                    },
+                                  ]
+                                : _selectProjeto,
                             onselect: (val) => _idProjetoController.text = val,
                           ),
                           const SizedBox(height: 15),
                           TextFormField(
                             controller: _assuntoController,
                             maxLines: 3,
-                            decoration: _inputDecoration("Assunto", "Descreva o que será discutido"),
-                            validator: (v) => v!.isEmpty ? 'Informe o assunto' : null,
+                            decoration: _inputDecoration(
+                              "Assunto",
+                              "Descreva o que será discutido",
+                            ),
+                            validator: (v) =>
+                                v!.isEmpty ? 'Informe o assunto' : null,
                           ),
                           const SizedBox(height: 15),
                           DropdownCustomer(
@@ -127,8 +149,11 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                             hinttext: "Selecione um local",
                             itens: _selectLocal,
                             onselect: (val) {
-                              final item = _selectLocal.firstWhere((e) => e['projeto_id'].toString() == val);
-                              _localController.text = item['projeto_nome_format'];
+                              final item = _selectLocal.firstWhere(
+                                (e) => e['projeto_id'].toString() == val,
+                              );
+                              _localController.text =
+                                  item['projeto_nome_format'];
                             },
                           ),
                           const SizedBox(height: 15),
@@ -150,7 +175,10 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                                   controller: _horaInicioController,
                                   type: TextInputType.datetime,
                                   suffixicon: Icons.access_time,
-                                  ontap: () => _selectTime(context, _horaInicioController),
+                                  ontap: () => _selectTime(
+                                    context,
+                                    _horaInicioController,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 15),
@@ -161,7 +189,8 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                                   controller: _horaFimController,
                                   type: TextInputType.datetime,
                                   suffixicon: Icons.access_time,
-                                  ontap: () => _selectTime(context, _horaFimController),
+                                  ontap: () =>
+                                      _selectTime(context, _horaFimController),
                                 ),
                               ),
                             ],
@@ -191,18 +220,37 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Adicionar participantes:", style: TextStyle(fontWeight: FontWeight.bold)),
-            IconButton(onPressed: openDialogAddParticipante, icon: const Icon(Icons.add_circle, color: Color(0xFF537686))),
+            const Text(
+              "Adicionar participantes:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              onPressed: openDialogAddParticipante,
+              icon: const Icon(Icons.add_circle, color: Color(0xFF537686)),
+            ),
           ],
         ),
         _listaParticipantes.isEmpty
-            ? const Center(child: Text("Nenhum participante adicionado", style: TextStyle(fontSize: 12, color: Colors.grey)))
+            ? const Center(
+                child: Text(
+                  "Nenhum participante adicionado",
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              )
             : Wrap(
                 spacing: 8,
-                children: _listaParticipantes.map((p) => Chip(
-                  label: Text(p.texto, style: const TextStyle(fontSize: 11)),
-                  onDeleted: () => setState(() => _listaParticipantes.remove(p)),
-                )).toList(),
+                children: _listaParticipantes
+                    .map(
+                      (p) => Chip(
+                        label: Text(
+                          p.texto,
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                        onDeleted: () =>
+                            setState(() => _listaParticipantes.remove(p)),
+                      ),
+                    )
+                    .toList(),
               ),
       ],
     );
@@ -216,10 +264,15 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
           backgroundColor: const Color(0xFF537686),
           foregroundColor: Colors.white,
           minimumSize: const Size(double.infinity, 50),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         ),
         icon: const Icon(Icons.calendar_today_outlined),
-        label: const Text("Criar Reunião", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        label: const Text(
+          "Criar Reunião",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
         onPressed: () {
           if (_formKey.currentState!.validate()) setReuniao();
         },
@@ -233,20 +286,41 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       hintText: hint,
       floatingLabelBehavior: FloatingLabelBehavior.always,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
-      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Color(0xFFE7E9ED))),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(20),
+        borderSide: const BorderSide(color: Color(0xFFE7E9ED)),
+      ),
     );
   }
 
-  // --- Lógica de Data e Hora ---
-
   Future<void> _selectDate(BuildContext context) async {
-    final picked = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime(2030));
-    if (picked != null) setState(() => _dataReuniaoController.text = DateFormat('dd/MM/yyyy').format(picked));
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+    );
+    if (picked != null)
+      setState(
+        () => _dataReuniaoController.text = DateFormat(
+          'dd/MM/yyyy',
+        ).format(picked),
+      );
   }
 
-  Future<void> _selectTime(BuildContext context, TextEditingController controller) async {
-    final picked = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-    if (picked != null) setState(() => controller.text = "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}");
+  Future<void> _selectTime(
+    BuildContext context,
+    TextEditingController controller,
+  ) async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null)
+      setState(
+        () => controller.text =
+            "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}",
+      );
   }
 
   // --- Chamadas de API (Com Mock para Fallback) ---
@@ -268,7 +342,12 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       builder: (context) => AlertDialog(
         title: const Text("Sucesso!"),
         content: const Text("Reunião agendada com sucesso."),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("OK"))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+        ],
       ),
     );
   }
@@ -278,26 +357,38 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       context: context,
       isScrollControlled: true,
       builder: (context) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom, left: 20, right: 20, top: 20),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("Adicionar Participante", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              "Adicionar Participante",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             TextField(
               controller: _buscaParticipanteController,
-              decoration: const InputDecoration(labelText: "Nome do aluno/colaborador"),
+              decoration: const InputDecoration(
+                labelText: "Nome do aluno/colaborador",
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _listaParticipantes.add(CheckBoxModel(
-                    idUsuario: 99, 
-                    texto: _buscaParticipanteController.text, 
-                    idSetor: 1, 
-                    nomeSetor: "Geral", 
-                    checked: true
-                  ));
+                  _listaParticipantes.add(
+                    CheckBoxModel(
+                      idUsuario: 99,
+                      texto: _buscaParticipanteController.text,
+                      idSetor: 1,
+                      nomeSetor: "Geral",
+                      checked: true,
+                    ),
+                  );
                 });
                 _buscaParticipanteController.clear();
                 Navigator.pop(context);
@@ -312,10 +403,12 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   }
 
   Future<void> _getUser() async {
-    var preferences = await SharedPreferences.getInstance();
-    final userShard = preferences.getString('user');
-    if (userShard != null) {
-      setState(() => user = User.fromJson(json.decode(userShard)));
+    // Agora pegamos o usuário do AuthProvider de forma segura
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.loadUser(); // Garante que carregou do storage
+
+    if (mounted) {
+      setState(() => user = authProvider.user);
     }
   }
 }

@@ -1,15 +1,14 @@
 class User {
-  int? id;
-  String name;
-  String token;
+  final int id;
+  final String name;
 
-  User({this.id, required this.name, required this.token});
+  const User({required this.id, required this.name});
 
   factory User.fromJson(Map<String, dynamic> json) {
-    return User(
-      id: json['id'],
-      name: json['name'] ?? 'Sem Nome',
-      token: json['token'] ?? '',
-    );
+    return User(id: json['id'] ?? 0, name: json['name'] ?? 'Sem Nome');
+  }
+
+  Map<String, dynamic> toJson() {
+    return {'id': id, 'name': name};
   }
 }
