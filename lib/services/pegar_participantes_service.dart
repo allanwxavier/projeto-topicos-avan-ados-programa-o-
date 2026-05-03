@@ -1,24 +1,50 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-import '../../dtos/user_dto.dart';
+import 'package:meu_projeto_faculdade/core/api_client.dart';
+import 'package:meu_projeto_faculdade/core/result.dart';
 
-Future getParticipantes(idReuniao) async {
-  var preferences = await SharedPreferences.getInstance();
-  final userJson = preferences.getString('user');
-  if (userJson == null) return null;
 
-  final user = User.fromJson(json.decode(userJson));
-  var url = Uri.parse('http://10.0.2.2:8080/api/v1/reuniao/participantes/listar');
-  
-  var resposta = await http.post(url, body: {
-    'idReuniao': idReuniao.toString(),
-    'token': user.token,
-  });
+/// Antes: usava `package:http` diretamente com token manual.
+/// Agora: usa [ApiClient] (token JWT injetado automaticamente) e [Result]
+/// para tratamento de erros padronizado.
+class PegarParticipantesService {
+  final ApiClient _apiClient;
 
-  if (resposta.statusCode == 200) {
-    var decoded = jsonDecode(resposta.body);
-    if (decoded['status'] == 'ok') return decoded['data'];
+  PegarParticipantesService({ApiClient? apiClient})
+      : _apiClient = apiClient ?? ApiClient();
+
+  /// Busca os participantes de uma reunião pelo ID.
+  ///
+  /// Retorna [Result] com a lista de participantes em caso de sucesso,
+  /// ou uma mensagem de erro em caso de falha.
+  Future<Result<List<dynamic>>> getParticipantes(int idReuniao) async {
+    final result = await _apiClient.post(
+      '/reunioes/participantes/listar',
+      body: {'idReuniao': idReuniao},
+    );
+
+    return result.when(
+      success: (data) {
+        if (data['status'] == 'ok' && data['data'] != null) {
+          return Result.success(data['data'] as List<dynamic>);
+        }
+        return Result.failure(data['message'] ?? 'Nenhum dado retornado');
+      },
+      failure: (message, statusCode) {
+        return Result.failure(message, statusCode: statusCode);
+      },
+    );
   }
-  return null;
+}
+
+/// Função legada mantida para compatibilidade reversa.
+/// Delega para [PegarParticipantesService].
+Future<dynamic> getParticipantes(dynamic idReuniao) async {
+  final service = PegarParticipantesService();
+  final result = await service.getParticipantes(
+    int.parse(idReuniao.toString()),
+  );
+
+  return result.when(
+    success: (data) => data,
+    failure: (_, __) => null,
+  );
 }
