@@ -1,9 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:intl/intl.dart';
+
 import 'package:meu_projeto_faculdade/dtos/user_dto.dart';
 import 'package:meu_projeto_faculdade/reuniao/checkbox_model.dart';
 import 'package:meu_projeto_faculdade/widgets/dropdown_customer.dart';
@@ -211,8 +210,6 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
     );
   }
 
-  // --- Widgets Auxiliares ---
-
   Widget _sectionParticipantes() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -300,12 +297,13 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2030),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(
         () => _dataReuniaoController.text = DateFormat(
           'dd/MM/yyyy',
         ).format(picked),
       );
+    }
   }
 
   Future<void> _selectTime(
@@ -316,17 +314,15 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    if (picked != null)
+    if (picked != null) {
       setState(
         () => controller.text =
             "${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}",
       );
+    }
   }
 
-  // --- Chamadas de API (Com Mock para Fallback) ---
-
   Future<void> getProjetos() async {
-    // Simulação para o trabalho da faculdade não quebrar sem internet/backend
     setState(() {
       _selectProjeto = [
         {'projeto_id': 1, 'projeto_nome_format': 'Projeto Integrador I'},
@@ -336,7 +332,6 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   }
 
   Future<void> setReuniao() async {
-    // Aqui você faria o POST. Para a faculdade, vamos apenas simular o sucesso:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -403,9 +398,8 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
   }
 
   Future<void> _getUser() async {
-    // Agora pegamos o usuário do AuthProvider de forma segura
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.loadUser(); // Garante que carregou do storage
+    await authProvider.loadUser();
 
     if (mounted) {
       setState(() => user = authProvider.user);

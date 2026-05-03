@@ -27,8 +27,7 @@ class ApiClient {
         onRequest: (options, handler) async {
           final token = await _storage.read(key: 'jwt_token');
           if (token != null) {
-            options.headers['Authorization'] =
-                'Bearer $token'; // <- Resolve o Bug 2
+            options.headers['Authorization'] = 'Bearer $token';
           }
           return handler.next(options);
         },

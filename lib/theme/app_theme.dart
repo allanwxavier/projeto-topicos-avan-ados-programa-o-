@@ -1,3 +1,4 @@
+// lib/theme/app_theme.dart
 import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
@@ -13,7 +14,6 @@ class AppTheme {
         primary: AppColors.neonCyan,
         secondary: AppColors.neonMagenta,
         surface: AppColors.surface,
-        background: AppColors.background,
         error: AppColors.error,
       ),
       textTheme: AppTypography.textTheme,

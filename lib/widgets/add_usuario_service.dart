@@ -1,6 +1,7 @@
 // lib/services/add_usuario_service.dart
 
 import 'dart:convert';
+import 'package:flutter/foundation.dart'; // <-- Importação necessária para o debugPrint
 import 'package:http/http.dart' as http;
 import '../dtos/user_dto.dart';
 import '../core/api_config.dart';
@@ -30,7 +31,8 @@ class AddUsuarioService {
       }
       return false;
     } catch (e) {
-      print('Erro ao adicionar usuário: $e');
+      // Substituído print por debugPrint para passar no flutter analyze
+      debugPrint('Erro ao adicionar usuário: $e');
       return false;
     }
   }

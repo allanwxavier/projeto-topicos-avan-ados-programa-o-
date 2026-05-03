@@ -1,3 +1,4 @@
+// lib/widgets/neon_button.dart
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
@@ -21,7 +22,7 @@ class NeonButton extends StatelessWidget {
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.4),
+            color: color.withValues(alpha: 0.4), // <- Corrigido aqui
             blurRadius: 15,
             spreadRadius: 2,
             offset: const Offset(0, 0),

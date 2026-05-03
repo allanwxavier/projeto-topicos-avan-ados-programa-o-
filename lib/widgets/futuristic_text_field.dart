@@ -37,7 +37,10 @@ class FuturisticTextField extends StatelessWidget {
           style: const TextStyle(color: AppColors.textPrimary),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: TextStyle(color: AppColors.textMuted.withOpacity(0.5)),
+            // Aviso corrigido: utilizando .withValues(alpha: 0.5)
+            hintStyle: TextStyle(
+              color: AppColors.textMuted.withValues(alpha: 0.5),
+            ),
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, color: AppColors.neonCyan)
                 : null,
