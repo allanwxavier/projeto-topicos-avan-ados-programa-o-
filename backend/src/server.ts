@@ -1,19 +1,20 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-
-// Importando as rotas (ajuste o caminho se necessário)
+import swaggerUi from 'swagger-ui-express';
+import { swaggerSpec } from './config/swagger';
 import authRoutes from './routes/auth.routes';
 import reuniaoRoutes from './routes/reuniao.routes';
 
 dotenv.config();
 
 const app = express();
-// Garante que a porta seja tratada como número
+
 const PORT = parseInt(process.env.API_PORT as string, 10) || 8080;
 
 app.use(cors());
 app.use(express.json());
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reunioes', reuniaoRoutes);
