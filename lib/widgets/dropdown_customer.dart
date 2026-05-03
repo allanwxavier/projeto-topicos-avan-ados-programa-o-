@@ -23,7 +23,10 @@ class DropdownCustomer extends StatelessWidget {
         labelText: label,
         floatingLabelBehavior: FloatingLabelBehavior.always,
         hintText: hinttext,
-        hintStyle: const TextStyle(color: Color.fromARGB(255, 91, 98, 106), fontSize: 12),
+        hintStyle: const TextStyle(
+          color: Color.fromARGB(255, 91, 98, 106),
+          fontSize: 12,
+        ),
         prefixIcon: icon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(20),
@@ -42,18 +45,13 @@ class DropdownCustomer extends StatelessWidget {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
       ),
-      // Mapeando a lista dinâmica para as opções do Dropdown
       items: itens.map<DropdownMenuItem<String>>((dynamic item) {
-        // Pega o ID e o Nome baseado na estrutura de dados que você definiu
         String value = item['projeto_id'].toString();
         String description = item['projeto_nome_format'] ?? 'Sem nome';
 
         return DropdownMenuItem<String>(
           value: value,
-          child: Text(
-            description,
-            style: const TextStyle(fontSize: 14),
-          ),
+          child: Text(description, style: const TextStyle(fontSize: 14)),
         );
       }).toList(),
       onChanged: (String? newValue) {
@@ -61,7 +59,8 @@ class DropdownCustomer extends StatelessWidget {
           onselect(newValue);
         }
       },
-      validator: (value) => value == null ? 'Por favor, selecione uma opção' : null,
+      validator: (value) =>
+          value == null ? 'Por favor, selecione uma opção' : null,
     );
   }
 }
