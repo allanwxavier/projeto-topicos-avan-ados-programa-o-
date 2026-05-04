@@ -399,7 +399,7 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
 
   Future<void> _getUser() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.loadUser();
+    await authProvider.tryAutoLogin();
 
     if (mounted) {
       setState(() => user = authProvider.user);
