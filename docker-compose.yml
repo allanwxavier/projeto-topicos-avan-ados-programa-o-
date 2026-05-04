@@ -1,13 +1,42 @@
-version: '3.8'
-
 services:
+  # --- Banco de Dados PostgreSQL ---
+  postgres:
+    image: postgres:15-alpine
+    container_name: meetsync_db
+    environment:
+      POSTGRES_USER: meetsync
+      POSTGRES_PASSWORD: meetsync123
+      POSTGRES_DB: meetsync
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  # --- Backend Node.js ---
   backend:
-    build: 
-      context: ./backend  
+    build:
+      context: ./backend
     container_name: meetsync_api
     ports:
-      - "8081:8080"     
+      - "8081:8080"
     environment:
       - API_PORT=8080
       - NODE_ENV=development
+      - DATABASE_URL=postgresql://meetsync:meetsync123@postgres:5432/meetsync?schema=public
+    depends_on:
+      - postgres
+      - rabbitmq
     restart: unless-stopped
+
+  # --- RabbitMQ ---
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"     # Porta de comunicação interna (AMQP)
+      - "15672:15672"   # Porta do painel visual no navegador
+    restart: unless-stopped
+
+volumes:
+  pgdata:

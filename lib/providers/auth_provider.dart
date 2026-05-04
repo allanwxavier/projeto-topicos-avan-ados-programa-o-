@@ -2,11 +2,12 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:meu_projeto_faculdade/core/api_client.dart';
+import 'package:meu_projeto_faculdade/core/api_config.dart';
 import 'package:meu_projeto_faculdade/dtos/user_dto.dart';
 
 
 class AuthProvider extends ChangeNotifier {
-  final ApiClient _apiClient = ApiClient();
+  final ApiClient _apiClient = ApiClient(baseUrl: ApiConfig.baseUrlReunioes);
 
   User? _user;
   bool _isLoading = false;
