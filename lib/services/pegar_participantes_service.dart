@@ -1,4 +1,5 @@
 import 'package:meu_projeto_faculdade/core/api_client.dart';
+import 'package:meu_projeto_faculdade/core/api_config.dart';
 import 'package:meu_projeto_faculdade/core/result.dart';
 
 /// Antes: usava `package:http` diretamente com token manual.
@@ -8,7 +9,7 @@ class PegarParticipantesService {
   final ApiClient _apiClient;
 
   PegarParticipantesService({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
+      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.baseUrlReunioes);
 
   /// Busca os participantes de uma reunião pelo ID.
   ///

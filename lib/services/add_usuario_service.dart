@@ -1,4 +1,5 @@
 import 'package:meu_projeto_faculdade/core/api_client.dart';
+import 'package:meu_projeto_faculdade/core/api_config.dart';
 import 'package:meu_projeto_faculdade/core/result.dart';
 
 /// Antes: usava `package:http` diretamente e montava headers manualmente.
@@ -8,7 +9,7 @@ class AddUsuarioService {
   final ApiClient _apiClient;
 
   AddUsuarioService({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
+      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.baseUrlReunioes);
 
   /// Adiciona um participante a uma reunião.
   /// 
@@ -43,7 +44,7 @@ class AddUsuarioService {
 /// Delega para [AddUsuarioService].
 Future<Map<String, dynamic>> addUsuarioReuniao(
     dynamic idReuniao, dynamic idParticipante) async {
-  final service = AddUsuarioService();
+  final service = AddUsuarioService(apiClient: ApiClient(baseUrl: ApiConfig.baseUrlReunioes));
   final result = await service.addUsuarioReuniao(
     int.parse(idReuniao.toString()),
     int.parse(idParticipante.toString()),

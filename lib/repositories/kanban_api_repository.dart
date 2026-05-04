@@ -1,4 +1,5 @@
 import 'package:meu_projeto_faculdade/core/api_client.dart';
+import 'package:meu_projeto_faculdade/core/api_config.dart';
 import 'package:meu_projeto_faculdade/models/kanban_card_model.dart';
 
 /// Repositório do Kanban conectado à API real do backend.
@@ -9,8 +10,9 @@ import 'package:meu_projeto_faculdade/models/kanban_card_model.dart';
 class KanbanApiRepository {
   final ApiClient _apiClient;
 
+  // Usa a URL centralizada do ApiConfig para o microserviço Kanban
   KanbanApiRepository({ApiClient? apiClient})
-      : _apiClient = apiClient ?? ApiClient();
+      : _apiClient = apiClient ?? ApiClient(baseUrl: ApiConfig.baseUrlKanban);
 
   /// Busca todos os cards do Kanban.
   Future<List<KanbanCardModel>> getCards() async {

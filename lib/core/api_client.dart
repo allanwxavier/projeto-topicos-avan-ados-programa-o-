@@ -5,16 +5,19 @@ import 'package:meu_projeto_faculdade/core/result.dart';
 
 /// Cliente HTTP centralizado com injeção automática do token JWT.
 ///
-/// Toda chamada HTTP do app deve passar por esta classe para garantir:
+/// Toda a chamada HTTP da app deve passar por esta classe para garantir:
 /// - Headers padronizados (Content-Type, Authorization)
 /// - Tratamento de erros consistente via [Result]
-/// - Log e interceptação centralizados
+/// - Log e interceção centralizados
 class ApiClient {
-  static const String _baseUrl = 'http://10.0.2.2:8080/api/v1';
+  /// A URL base agora é dinâmica, permitindo ligar a diferentes microserviços.
+  final String baseUrl;
 
   final http.Client _client;
 
-  ApiClient({http.Client? client}) : _client = client ?? http.Client();
+  /// Construtor que exige a passagem da [baseUrl] de acordo com o serviço pretendido.
+  ApiClient({required this.baseUrl, http.Client? client}) 
+      : _client = client ?? http.Client();
 
   /// Recupera o token JWT armazenado no SharedPreferences.
   Future<String?> _getToken() async {
@@ -50,7 +53,7 @@ class ApiClient {
     try {
       final headers = await _buildHeaders(withAuth: withAuth);
       final response = await _client.get(
-        Uri.parse('$_baseUrl$path'),
+        Uri.parse('$baseUrl$path'),
         headers: headers,
       );
       return _handleResponse(response);
@@ -68,7 +71,7 @@ class ApiClient {
     try {
       final headers = await _buildHeaders(withAuth: withAuth);
       final response = await _client.post(
-        Uri.parse('$_baseUrl$path'),
+        Uri.parse('$baseUrl$path'),
         headers: headers,
         body: body != null ? json.encode(body) : null,
       );
@@ -87,7 +90,7 @@ class ApiClient {
     try {
       final headers = await _buildHeaders(withAuth: withAuth);
       final response = await _client.put(
-        Uri.parse('$_baseUrl$path'),
+        Uri.parse('$baseUrl$path'),
         headers: headers,
         body: body != null ? json.encode(body) : null,
       );
@@ -105,7 +108,7 @@ class ApiClient {
     try {
       final headers = await _buildHeaders(withAuth: withAuth);
       final response = await _client.delete(
-        Uri.parse('$_baseUrl$path'),
+        Uri.parse('$baseUrl$path'),
         headers: headers,
       );
       return _handleResponse(response);
@@ -133,7 +136,7 @@ class ApiClient {
     }
   }
 
-  /// Libera recursos do client HTTP.
+  /// Liberta os recursos do client HTTP.
   void dispose() {
     _client.close();
   }

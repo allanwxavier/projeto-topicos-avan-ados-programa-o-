@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { ReuniaoService } from "../services/reuniao.service";
+import { RabbitMQService } from '../services/rabbitmq.service';
 
 const reuniaoService = new ReuniaoService();
 
@@ -15,22 +16,32 @@ export class ReuniaoController{
     }
 
     async criar(req: Request, res: Response) {
-        const { assunto, local, data, horaInicio, horaFim } = req.body;
+  const { assunto, local, data, horaInicio, horaFim } = req.body;
 
-        if (!assunto || !local || !data || !horaInicio || !horaFim) {
-          return res.status(400).json({
-            status: 'error',
-            message: 'Campos obrigatórios ausentes: assunto, local, data, horaInicio e horaFim são necessários.'
-          });
-        }
+  if (!assunto || !local || !data || !horaInicio || !horaFim) {
+    return res.status(400).json({
+      status: 'error',
+      message: 'Campos obrigatórios ausentes.'
+    });
+  }
 
-        try{
-            const reuniao = await reuniaoService.criar(req.body); 
-            res.status(201).json({ status: 'ok', data: reuniao});
-        } catch (error){
-            res.status(500).json({ status: 'error', message: 'Erro ao criar reuniao'})
-        }
-    }
+  try {
+    const reuniao = await reuniaoService.criar(req.body);
+
+    // ── ENVIO PARA O RABBITMQ ──────────────────────
+    await RabbitMQService.enviarParaFila('reuniao_criada', {
+      id: reuniao.id,
+      titulo: reuniao.assunto,
+      descricao: reuniao.local,
+      data: reuniao.data,
+      tipo: 'EVENTO_REUNIAO'
+    });
+
+    res.status(201).json({ status: 'ok', data: reuniao });
+  } catch (error) {
+    res.status(500).json({ status: 'error', message: 'Erro ao criar reunião' });
+  }
+}
 
     async adicionarParticipante(req: Request, res: Response) {
       const { idReuniao, idParticipante } = req.body;
