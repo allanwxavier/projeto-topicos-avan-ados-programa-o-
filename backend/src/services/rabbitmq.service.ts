@@ -4,7 +4,14 @@ export class RabbitMQService {
   static async enviarParaFila(fila: string, mensagem: any) {
     try {
       // Conecta ao container do RabbitMQ definido no docker-compose
-      const connection = await amqp.connect('amqp://rabbitmq'); 
+      const connection = await amqp.connect({
+        hostname: process.env.RABBITMQ_HOST,
+        port: Number(process.env.RABBITMQ_PORT),
+        username: process.env.RABBITMQ_USER,
+        password: process.env.RABBITMQ_PASSWORD,
+        vhost: process.env.RABBITMQ_VHOST,
+      });
+
       const channel = await connection.createChannel();
 
       await channel.assertQueue(fila, { durable: true });
