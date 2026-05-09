@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: meetsync123
       POSTGRES_DB: meetsync
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
@@ -18,28 +18,16 @@ services:
   # --- Backend Node.js ---
   backend:
     build:
-      context: ./backend
+      context: .
     container_name: meetsync_api
     ports:
-      - "8082:8080" # 
+      - "8082:8080" 
     environment:
       - API_PORT=8080
       - NODE_ENV=development
       - DATABASE_URL=postgresql://meetsync:meetsync123@postgres:5432/meetsync?schema=public
     depends_on:
       - postgres
-      - rabbitmq
-    restart: unless-stopped
-    networks:
-      - microsaas-net
-
-  # --- RabbitMQ ---
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5673:5672"     
-      - "15673:15672"   
     restart: unless-stopped
     networks:
       - microsaas-net

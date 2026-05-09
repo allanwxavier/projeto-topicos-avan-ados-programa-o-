@@ -4,7 +4,7 @@ async function debugPublish() {
   try {
     console.log('Conectando ao RabbitMQ...');
     // Forçando o IP local para não ter erro de .env
-    const connection = await amqp.connect('amqp://guest:guest@127.0.0.1:5672');
+    const connection = await amqp.connect('amqp://guest:guest@rabbitmq:5672');
     const channel = await connection.createChannel();
     
     const queue = 'reuniao_criada';
