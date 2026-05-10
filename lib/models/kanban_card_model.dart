@@ -1,3 +1,5 @@
+enum SyncStatus { pending, syncing, confirmed, failed }
+
 class KanbanCardModel {
   final String id;
   String title;
@@ -9,6 +11,8 @@ class KanbanCardModel {
   DateTime updatedAt;
   List<String> tags;
 
+  SyncStatus syncStatus;
+
   KanbanCardModel({
     required this.id,
     required this.title,
@@ -19,9 +23,12 @@ class KanbanCardModel {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<String>? tags,
-  })  : createdAt = createdAt ?? DateTime.now(),
-        updatedAt = updatedAt ?? DateTime.now(),
-        tags = tags ?? [];
+    this.syncStatus = SyncStatus.confirmed,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now(),
+       tags = tags ?? [];
+
+  /// Cards vindos da API são, por padrão, [SyncStatus.confirmed],
 
   factory KanbanCardModel.fromJson(Map<String, dynamic> json) {
     return KanbanCardModel(
@@ -37,12 +44,13 @@ class KanbanCardModel {
       updatedAt: json['updatedAt'] != null
           ? DateTime.parse(json['updatedAt'])
           : DateTime.now(),
-      tags: json['tags'] != null
-          ? List<String>.from(json['tags'])
-          : [],
+      tags: json['tags'] != null ? List<String>.from(json['tags']) : [],
+      syncStatus: SyncStatus.confirmed,
     );
   }
 
+  /// IMPORTANTE: [syncStatus] NÃO entra no toJson — é estado de UI.
+  /// O backend não precisa saber dele.
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -64,6 +72,7 @@ class KanbanCardModel {
     int? priority,
     String? assignee,
     List<String>? tags,
+    SyncStatus? syncStatus,
   }) {
     return KanbanCardModel(
       id: id,
@@ -75,6 +84,7 @@ class KanbanCardModel {
       createdAt: createdAt,
       updatedAt: DateTime.now(),
       tags: tags ?? this.tags,
+      syncStatus: syncStatus ?? this.syncStatus,
     );
   }
 }
@@ -83,8 +93,5 @@ class KanbanColumnModel {
   final String id;
   final String title;
 
-  const KanbanColumnModel({
-    required this.id,
-    required this.title,
-  });
+  const KanbanColumnModel({required this.id, required this.title});
 }

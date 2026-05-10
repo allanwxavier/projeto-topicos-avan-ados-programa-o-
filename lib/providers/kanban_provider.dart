@@ -1,16 +1,19 @@
 import 'package:appflowy_board/appflowy_board.dart';
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 import 'package:meu_projeto_faculdade/models/kanban_card_model.dart';
 import 'package:meu_projeto_faculdade/repositories/kanban_mock_repository.dart';
-import 'package:meu_projeto_faculdade/repositories/kanban_api_repository.dart';
+import 'package:meu_projeto_faculdade/repositories/kanban_command_repository.dart';
+import 'package:meu_projeto_faculdade/repositories/kanban_query_repository.dart';
 import 'package:meu_projeto_faculdade/core/socket_service.dart';
 import 'package:meu_projeto_faculdade/presentation/screens/kanban_board_screen.dart';
 
-
 class KanbanProvider extends ChangeNotifier {
   final KanbanMockRepository _mockRepo = KanbanMockRepository();
-  final KanbanApiRepository _apiRepo = KanbanApiRepository();
+  final KanbanCommandRepository _commandRepo = KanbanCommandRepository();
+  final KanbanQueryRepository _queryRepo = KanbanQueryRepository();
   final SocketService _socketService = SocketService();
+  final Uuid _uuid = const Uuid();
 
   late AppFlowyBoardController boardController;
 
@@ -32,15 +35,13 @@ class KanbanProvider extends ChangeNotifier {
     );
   }
 
-  // ─── Carregar cards ────────────────────────────────────────────
-
   Future<void> loadCards() async {
     _isLoading = true;
     notifyListeners();
 
     try {
       if (_useRealApi) {
-        _cards = await _apiRepo.getCards();
+        _cards = await _queryRepo.getCards();
       } else {
         _cards = await _mockRepo.getCards();
       }
@@ -53,10 +54,7 @@ class KanbanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ─── Construir o board AppFlowy ────────────────────────────────
-
   void _buildBoard() {
-    // Limpa groups anteriores
     final columns = KanbanMockRepository.columns;
     boardController.clear();
 
@@ -76,9 +74,82 @@ class KanbanProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> addCard({
+    required String title,
+    String description = '',
+    required String columnId,
+    int priority = 0,
+    String? assignee,
+    List<String>? tags,
+  }) async {
+    if (!_useRealApi) {
+      final newCard = await _mockRepo.createCard(
+        title: title,
+        description: description,
+        columnId: columnId,
+        priority: priority,
+        assignee: assignee,
+        tags: tags,
+      );
+      _cards.add(newCard);
+      _buildBoard();
+      notifyListeners();
+      return;
+    }
+
+    final tempId = 'temp_${_uuid.v4()}';
+    final optimisticCard = KanbanCardModel(
+      id: tempId,
+      title: title,
+      description: description,
+      columnId: columnId,
+      priority: priority,
+      assignee: assignee,
+      tags: tags,
+      syncStatus: SyncStatus.pending,
+    );
+
+    _cards.add(optimisticCard);
+    _buildBoard();
+    notifyListeners();
+
+    try {
+      final realCard = await _commandRepo.createCard(
+        title: title,
+        description: description,
+        columnId: columnId,
+        priority: priority,
+        assignee: assignee,
+        tags: tags,
+      );
+
+      final idx = _cards.indexWhere((c) => c.id == tempId);
+      if (idx != -1) {
+        _cards[idx] = realCard.copyWith(syncStatus: SyncStatus.syncing);
+
+        _cards[idx] = realCard;
+        _cards[idx].syncStatus = SyncStatus.syncing;
+        _buildBoard();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Erro ao criar card: $e');
+      final idx = _cards.indexWhere((c) => c.id == tempId);
+      if (idx != -1) {
+        _cards[idx].syncStatus = SyncStatus.failed;
+        _buildBoard();
+        notifyListeners();
+
+        await Future.delayed(const Duration(seconds: 3));
+        _cards.removeWhere((c) => c.id == tempId);
+        _buildBoard();
+        notifyListeners();
+      }
+    }
+  }
 
   void _onCardMoved(String groupId, int fromIndex, int toIndex) {
-    
+    // Reordenação dentro da mesma coluna — só notifica.
     notifyListeners();
   }
 
@@ -88,88 +159,54 @@ class KanbanProvider extends ChangeNotifier {
     String toGroupId,
     int toIndex,
   ) {
-    
     final group = boardController.getGroupController(toGroupId);
     if (group == null) return;
 
     final item = group.items[toIndex] as KanbanCardItem;
     final cardId = item.card.id;
 
-    
-    _moveCard(cardId, toGroupId);
+    _moveCard(cardId, fromGroupId, toGroupId);
   }
 
-  Future<void> _moveCard(String cardId, String toColumnId) async {
-    try {
-      if (_useRealApi) {
-        await _apiRepo.moveCard(cardId, toColumnId);
-        // WebSocket broadcast é tratado pelo server
-      } else {
-        await _mockRepo.moveCard(cardId, toColumnId);
-      }
-
-      // Atualiza localmente
+  Future<void> _moveCard(
+    String cardId,
+    String fromColumnId,
+    String toColumnId,
+  ) async {
+    if (!_useRealApi) {
+      await _mockRepo.moveCard(cardId, toColumnId);
       final idx = _cards.indexWhere((c) => c.id == cardId);
-      if (idx != -1) {
-        _cards[idx].columnId = toColumnId;
-      }
+      if (idx != -1) _cards[idx].columnId = toColumnId;
+      return;
+    }
+
+    final idx = _cards.indexWhere((c) => c.id == cardId);
+    if (idx != -1) {
+      _cards[idx].columnId = toColumnId;
+      _cards[idx].syncStatus = SyncStatus.syncing;
+      notifyListeners();
+    }
+
+    try {
+      await _commandRepo.moveCard(cardId, toColumnId);
     } catch (e) {
       debugPrint('Erro ao mover card: $e');
-    }
-  }
-
-  // ─── Adicionar card ────────────────────────────────────────────
-
-  Future<void> addCard({
-    required String title,
-    String description = '',
-    required String columnId,
-    int priority = 0,
-    String? assignee,
-    List<String>? tags,
-  }) async {
-    try {
-      KanbanCardModel newCard;
-      if (_useRealApi) {
-        newCard = await _apiRepo.createCard(
-          title: title,
-          description: description,
-          columnId: columnId,
-          priority: priority,
-          assignee: assignee,
-          tags: tags,
-        );
-      } else {
-        newCard = await _mockRepo.createCard(
-          title: title,
-          description: description,
-          columnId: columnId,
-          priority: priority,
-          assignee: assignee,
-          tags: tags,
-        );
+      // Rollback: volta para a coluna original.
+      if (idx != -1) {
+        _cards[idx].columnId = fromColumnId;
+        _cards[idx].syncStatus = SyncStatus.failed;
+        _buildBoard();
+        notifyListeners();
       }
-
-      _cards.add(newCard);
-
-      final group = boardController.getGroupController(columnId);
-      group?.add(KanbanCardItem(newCard));
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Erro ao criar card: $e');
     }
   }
 
-
-  /// Alterna para a API real e ativa WebSockets.
   Future<void> switchToRealApi() async {
     _useRealApi = true;
     await _connectWebSocket();
     await loadCards();
   }
 
-  /// Volta para o mock (desconecta WebSocket).
   Future<void> switchToMock() async {
     _useRealApi = false;
     _isRealtime = false;
@@ -177,10 +214,22 @@ class KanbanProvider extends ChangeNotifier {
     await loadCards();
   }
 
-  
-
   Future<void> _connectWebSocket() async {
     _socketService.connect();
+
+    _socketService.on('card:created', (data) {
+      final card = KanbanCardModel.fromJson(data);
+      final idx = _cards.indexWhere((c) => c.id == card.id);
+
+      if (idx != -1) {
+        _cards[idx].syncStatus = SyncStatus.confirmed;
+      } else {
+        // Veio de outro usuário.
+        _cards.add(card);
+      }
+      _buildBoard();
+      notifyListeners();
+    });
 
     _socketService.on('card:moved', (data) {
       final cardId = data['cardId'].toString();
@@ -188,15 +237,7 @@ class KanbanProvider extends ChangeNotifier {
       final idx = _cards.indexWhere((c) => c.id == cardId);
       if (idx != -1) {
         _cards[idx].columnId = newColumn;
-        _buildBoard();
-        notifyListeners();
-      }
-    });
-
-    _socketService.on('card:created', (data) {
-      final card = KanbanCardModel.fromJson(data);
-      if (!_cards.any((c) => c.id == card.id)) {
-        _cards.add(card);
+        _cards[idx].syncStatus = SyncStatus.confirmed;
         _buildBoard();
         notifyListeners();
       }

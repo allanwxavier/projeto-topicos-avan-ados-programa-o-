@@ -79,16 +79,18 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                 ),
               ],
             ),
-            child: const Icon(Icons.dashboard_rounded,
-                color: Colors.white, size: 20),
+            child: const Icon(
+              Icons.dashboard_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 14),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ShaderMask(
-                shaderCallback: (b) =>
-                    AppTheme.neonGradient.createShader(b),
+                shaderCallback: (b) => AppTheme.neonGradient.createShader(b),
                 child: const Text(
                   'MeetSync Board',
                   style: TextStyle(
@@ -112,8 +114,10 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
           Consumer<KanbanProvider>(
             builder: (_, prov, __) {
               return Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
                   color: prov.isRealtime
@@ -185,7 +189,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     );
   }
 
-  // ─── Board appflowy_board ──────────────────────────────────────
   Widget _buildBoard(KanbanProvider provider) {
     return AppFlowyBoard(
       controller: provider.boardController,
@@ -222,11 +225,12 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 7, vertical: 2),
+                    horizontal: 7,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
-                    color:
-                        AppTheme.neonCyan.withValues(alpha: 0.1),
+                    color: AppTheme.neonCyan.withValues(alpha: 0.1),
                   ),
                   child: Text(
                     '${groupData.items.length}',
@@ -250,10 +254,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
           icon: const Icon(Icons.add, size: 18, color: AppTheme.neonCyan),
           title: const Text(
             'Novo card',
-            style: TextStyle(
-              fontSize: 12,
-              color: AppTheme.neonCyan,
-            ),
+            style: TextStyle(fontSize: 12, color: AppTheme.neonCyan),
           ),
           onAddButtonClick: () =>
               _showAddCardDialog(groupData.headerData.groupId),
@@ -267,109 +268,189 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     );
   }
 
-  // ─── Card visual ───────────────────────────────────────────────
   Widget _buildCardTile(KanbanCardModel card) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        color: AppTheme.darkSurface.withValues(alpha: 0.9),
-        border: Border.all(
-          color: AppTheme.borderGlow.withValues(alpha: 0.3),
+    // Determina os estilos baseado no estado de sincronização
+    final isPending = card.syncStatus == SyncStatus.pending;
+    final isSyncing = card.syncStatus == SyncStatus.syncing;
+    final isFailed = card.syncStatus == SyncStatus.failed;
+    final isConfirmed = card.syncStatus == SyncStatus.confirmed;
+
+    final opacity = isPending ? 0.5 : (isFailed ? 0.7 : 1.0);
+
+    final borderColor = isFailed
+        ? Colors.red.withValues(alpha: 0.8)
+        : AppTheme.borderGlow.withValues(alpha: 0.3);
+
+    return Opacity(
+      opacity: opacity,
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          color: AppTheme.darkSurface.withValues(alpha: 0.9),
+          border: Border.all(color: borderColor, width: isFailed ? 2.0 : 1.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Tags
-          if (card.tags.isNotEmpty)
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              children: card.tags.map((tag) {
-                return Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(6),
-                    color: _tagColor(tag).withValues(alpha: 0.15),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Tags
+                if (card.tags.isNotEmpty)
+                  Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: card.tags.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          color: _tagColor(tag).withValues(alpha: 0.15),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w600,
+                            color: _tagColor(tag),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
+                if (card.tags.isNotEmpty) const SizedBox(height: 8),
+                // Título (com padding à direita pra não colidir com o badge)
+                Padding(
+                  padding: const EdgeInsets.only(right: 22),
                   child: Text(
-                    tag,
-                    style: TextStyle(
-                      fontSize: 9,
+                    card.title,
+                    style: const TextStyle(
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: _tagColor(tag),
+                      color: AppTheme.textPrimary,
                     ),
                   ),
-                );
-              }).toList(),
+                ),
+                if (card.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    card.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppTheme.textSecondary.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                // Footer: prioridade + assignee
+                Row(
+                  children: [
+                    _priorityBadge(card.priority),
+                    const Spacer(),
+                    if (card.assignee != null)
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 10,
+                            backgroundColor: AppTheme.neonPurple.withValues(
+                              alpha: 0.3,
+                            ),
+                            child: Text(
+                              card.assignee![0].toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 9,
+                                color: AppTheme.neonPurple,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            card.assignee!,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.textSecondary.withValues(
+                                alpha: 0.7,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
             ),
-          if (card.tags.isNotEmpty) const SizedBox(height: 8),
-          // Título
-          Text(
-            card.title,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          if (card.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              card.description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontSize: 11,
-                color: AppTheme.textSecondary.withValues(alpha: 0.7),
+
+            Positioned(
+              top: 0,
+              right: 0,
+              child: _buildSyncStatusBadge(
+                isPending,
+                isSyncing,
+                isFailed,
+                isConfirmed,
               ),
             ),
           ],
-          const SizedBox(height: 8),
-          // Footer: prioridade + assignee
-          Row(
-            children: [
-              _priorityBadge(card.priority),
-              const Spacer(),
-              if (card.assignee != null)
-                Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 10,
-                      backgroundColor:
-                          AppTheme.neonPurple.withValues(alpha: 0.3),
-                      child: Text(
-                        card.assignee![0].toUpperCase(),
-                        style: const TextStyle(
-                            fontSize: 9, color: AppTheme.neonPurple),
-                      ),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      card.assignee!,
-                      style: TextStyle(
-                        fontSize: 10,
-                        color:
-                            AppTheme.textSecondary.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  Widget _buildSyncStatusBadge(
+    bool isPending,
+    bool isSyncing,
+    bool isFailed,
+    bool isConfirmed,
+  ) {
+    if (isPending) {
+      return const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.5,
+          valueColor: AlwaysStoppedAnimation(AppTheme.neonCyan),
+        ),
+      );
+    }
+
+    if (isSyncing) {
+      return const SizedBox(
+        width: 14,
+        height: 14,
+        child: CircularProgressIndicator(
+          strokeWidth: 1.5,
+          valueColor: AlwaysStoppedAnimation(AppTheme.neonPurple),
+        ),
+      );
+    }
+
+    if (isFailed) {
+      // Algo deu errado na escrita
+      return const Icon(Icons.error_outline, color: Colors.red, size: 14);
+    }
+
+    if (isConfirmed) {
+      return const Icon(
+        Icons.check_circle_outline,
+        color: AppTheme.neonGreen,
+        size: 14,
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _priorityBadge(int priority) {
@@ -426,7 +507,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     return colors[hash.abs() % colors.length];
   }
 
-  // ─── FAB ───────────────────────────────────────────────────────
   Widget _buildFab() {
     return Container(
       decoration: BoxDecoration(
@@ -447,7 +527,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     );
   }
 
-  // ─── Dialog: adicionar card ────────────────────────────────────
   void _showAddCardDialog(String columnId) {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
@@ -486,17 +565,16 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: InputDecoration(
                 labelText: 'Título',
-                labelStyle:
-                    const TextStyle(color: AppTheme.textSecondary),
+                labelStyle: const TextStyle(color: AppTheme.textSecondary),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                      color: AppTheme.borderGlow.withValues(alpha: 0.5)),
+                    color: AppTheme.borderGlow.withValues(alpha: 0.5),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppTheme.neonCyan),
+                  borderSide: const BorderSide(color: AppTheme.neonCyan),
                 ),
               ),
             ),
@@ -507,17 +585,16 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
               style: const TextStyle(color: AppTheme.textPrimary),
               decoration: InputDecoration(
                 labelText: 'Descrição',
-                labelStyle:
-                    const TextStyle(color: AppTheme.textSecondary),
+                labelStyle: const TextStyle(color: AppTheme.textSecondary),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                      color: AppTheme.borderGlow.withValues(alpha: 0.5)),
+                    color: AppTheme.borderGlow.withValues(alpha: 0.5),
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide:
-                      const BorderSide(color: AppTheme.neonCyan),
+                  borderSide: const BorderSide(color: AppTheme.neonCyan),
                 ),
               ),
             ),
@@ -529,27 +606,28 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
             child: Text(
               'Cancelar',
               style: TextStyle(
-                  color: AppTheme.textSecondary.withValues(alpha: 0.7)),
+                color: AppTheme.textSecondary.withValues(alpha: 0.7),
+              ),
             ),
           ),
           ElevatedButton(
             onPressed: () {
               if (titleCtrl.text.trim().isNotEmpty) {
                 context.read<KanbanProvider>().addCard(
-                      title: titleCtrl.text.trim(),
-                      description: descCtrl.text.trim(),
-                      columnId: columnId,
-                    );
+                  title: titleCtrl.text.trim(),
+                  description: descCtrl.text.trim(),
+                  columnId: columnId,
+                );
                 Navigator.pop(ctx);
               }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.neonCyan,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
-            child:
-                const Text('Criar', style: TextStyle(color: Colors.white)),
+            child: const Text('Criar', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -557,7 +635,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
   }
 }
 
-/// Item wrapper para o AppFlowyBoard.
 class KanbanCardItem extends AppFlowyGroupItem {
   final KanbanCardModel card;
   KanbanCardItem(this.card);

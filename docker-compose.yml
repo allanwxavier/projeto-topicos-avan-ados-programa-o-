@@ -1,0 +1,140 @@
+# ════════════════════════════════════════════════════════════════════
+#  DOCKER-COMPOSE — Projeto CQRS (versão entrega)
+# ════════════════════════════════════════════════════════════════════
+
+services:
+
+  # 1. PostgreSQL (Node)
+  postgres:
+    image: postgres:15-alpine
+    container_name: cqrs_postgres
+    environment:
+      POSTGRES_USER: meetsync
+      POSTGRES_PASSWORD: meetsync123
+      POSTGRES_DB: meetsync
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - cqrs-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meetsync"]
+      interval: 5s
+      retries: 5
+
+  # 2. MySQL (Laravel)
+  mysql:
+    image: mysql:8.0
+    container_name: cqrs_mysql
+    environment:
+      MYSQL_DATABASE: microsaas
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: laravel123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysqldata:/var/lib/mysql
+    networks:
+      - cqrs-net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      retries: 5
+
+  # 3. RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: cqrs_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    networks:
+      - cqrs-net
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      retries: 5
+
+  # 4. Node.js API (Write Model)
+  node-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: cqrs_node_api
+    ports:
+      - "8081:8081"
+    environment:
+      - API_PORT=8081
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://meetsync:meetsync123@postgres:5432/meetsync?schema=public
+      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+      - JWT_SECRET=segredo_super_secreto_do_trabalho
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - cqrs-net
+    restart: unless-stopped
+
+  # 5. Laravel App (Read Model)
+  laravel-app:
+    build:
+      context: ../MicroSaas_To_do/php-service
+      dockerfile: Dockerfile
+    container_name: cqrs_laravel_app
+    volumes:
+      - ../MicroSaas_To_do/php-service:/var/www
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=microsaas
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=laravel123
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=admin
+      - RABBITMQ_PASSWORD=admin123
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      cqrs-net:
+        aliases:
+          - app
+    restart: unless-stopped
+
+  # 6. Nginx (Laravel webserver)
+  laravel-webserver:
+    image: nginx:alpine
+    container_name: cqrs_laravel_web
+    ports:
+      - "8000:80"
+    volumes:
+      - ../MicroSaas_To_do/php-service:/var/www/html
+      - ../MicroSaas_To_do/php-service/docker-config/nginx:/etc/nginx/conf.d
+    depends_on:
+      - laravel-app
+    networks:
+      - cqrs-net
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  mysqldata:
+  rabbitmqdata:
+
+networks:
+  cqrs-net:
+    driver: bridge
