@@ -62,7 +62,24 @@ services:
       interval: 10s
       retries: 5
 
-  # 4. Node.js API (Write Model)
+  # 4. Redis
+  redis:
+    image: redis:7-alpine
+    container_name: cqrs_redis
+    command: redis-server --requirepass admin123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - cqrs-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "admin123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 5. Node.js API (Write Model)
   node-api:
     build:
       context: ./backend
@@ -76,16 +93,21 @@ services:
       - DATABASE_URL=postgresql://meetsync:meetsync123@postgres:5432/meetsync?schema=public
       - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
       - JWT_SECRET=segredo_super_secreto_do_trabalho
+      - REDIS_HOST=cqrs_redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=admin123
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - cqrs-net
     restart: unless-stopped
 
-  # 5. Laravel App (Read Model)
+  # 6. Laravel App (Read Model)
   laravel-app:
     build:
       context: ../MicroSaas_To_do/php-service
@@ -122,7 +144,7 @@ services:
     ports:
       - "8000:80"
     volumes:
-      - ../MicroSaas_To_do/php-service:/var/www/html
+      - ../MicroSaas_To_do/php-service:/var/www
       - ../MicroSaas_To_do/php-service/docker-config/nginx:/etc/nginx/conf.d
     depends_on:
       - laravel-app
@@ -134,6 +156,7 @@ volumes:
   pgdata:
   mysqldata:
   rabbitmqdata:
+  redisdata:
 
 networks:
   cqrs-net:

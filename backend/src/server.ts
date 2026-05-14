@@ -8,6 +8,7 @@ import { swaggerSpec } from './config/swagger';
 import authRoutes from './routes/auth.routes';
 import reuniaoRoutes from './routes/reuniao.routes';
 import kanbanRoutes from './routes/kanban.routes';
+import { redisService } from './services/redis.service';
 
 dotenv.config();
 
@@ -53,12 +54,18 @@ app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'API rodando!' });
 });
 
+// ✅ Funciona — await dentro de função async
 if (process.env.NODE_ENV !== 'test') {
-  
-  httpServer.listen(PORT, '0.0.0.0', () => {
-    console.log(`Servidor rodando na porta ${PORT}`);
-    console.log(`Socket.IO ativo na porta ${PORT}`);
-  });
+  (async () => {
+    await redisService.redisConnect();
+    console.log('[Redis] Conectado!');
+
+    httpServer.listen(PORT, '0.0.0.0', () => {
+      console.log(`Servidor rodando na porta ${PORT}`);
+      console.log(`Socket.IO ativo na porta ${PORT}`);
+    });
+  })();
 }
+
 
 export default app;
