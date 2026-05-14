@@ -109,4 +109,31 @@ export class ReuniaoController {
             res.status(500).json({ status: 'error', message: 'Erro ao listar participantes' });
         }
     }
+
+    async buscarPorId(req: Request, res: Response) {
+        const id = Number(req.params.id);
+
+        if (isNaN(id)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'ID inválido.'
+            });
+        }
+
+        try {
+            const reuniao = await reuniaoService.buscarPorId(id);
+
+            if (!reuniao) {
+                return res.status(404).json({
+                    status: 'error',
+                    message: 'Reunião não encontrada.'
+                });
+            }
+
+            res.json({ status: 'ok', data: reuniao });
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ status: 'error', message: 'Erro ao buscar reunião' });
+        }
+    }
 }
