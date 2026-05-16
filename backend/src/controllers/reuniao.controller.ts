@@ -136,4 +136,31 @@ export class ReuniaoController {
             res.status(500).json({ status: 'error', message: 'Erro ao buscar reunião' });
         }
     }
+
+    async atualizarStatus(req: Request, res: Response) {
+        const id = Number(req.params.id);
+        const { status } = req.body;
+
+        if (isNaN(id)) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'ID inválido.'
+            });
+        }
+
+        if (!status) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'O campo status é obrigatório.'
+            });
+        }
+
+        try {
+            const reuniao = await reuniaoService.atualizarStatus(id, status);
+            return res.json({ status: 'ok', data: reuniao });
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ status: 'error', message: 'Erro ao atualizar o status da reunião' });
+        }
+    }
 }

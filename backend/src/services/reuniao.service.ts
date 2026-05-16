@@ -1,5 +1,7 @@
 import { ReuniaoRepository } from '../repositories/reuniao.repository';
 import { redisService } from './redis.service';
+import { RabbitMQService } from './rabbitmq.service';
+import crypto from 'crypto';
 
 const reuniaoRepository = new ReuniaoRepository();
 
@@ -57,6 +59,28 @@ export class ReuniaoService {
     return reuniao;
 
 
+  }
 
+  async atualizarStatus(id: number, status: string) {
+    const reuniaoAtualizada = await reuniaoRepository.updateStatus(id, status);
+
+    
+    await redisService.del(`reuniao:item:${id}`);
+    await redisService.del('reuniao:lista');
+
+    
+    const evento = {
+      eventId: crypto.randomUUID(),
+      tipo: 'ReuniaoStatusAtualizadoEvent',
+      dataPublicacao: new Date().toISOString(),
+      payload: {
+        id: reuniaoAtualizada.id,
+        status: reuniaoAtualizada.status
+      }
+    };
+
+    await RabbitMQService.enviarParaFila('reuniao_events', evento);
+
+    return reuniaoAtualizada;
   }
 }

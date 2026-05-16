@@ -27,6 +27,8 @@ model Reuniao {
   horaInicio   String
   horaFim      String
   criadoEm     DateTime @default(now())
+  
+  status String @default("Agendada")
 
   participantes ParticipanteReuniao[]
 

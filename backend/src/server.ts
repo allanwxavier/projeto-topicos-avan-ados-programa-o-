@@ -12,6 +12,7 @@ import authRoutes from './routes/auth.routes';
 import reuniaoRoutes from './routes/reuniao.routes';
 import kanbanRoutes from './routes/kanban.routes';
 import { redisService } from './services/redis.service';
+import { iniciarConsumer } from './services/rabbitmq-consumer.service';
 
 dotenv.config();
 
@@ -134,7 +135,10 @@ if (process.env.NODE_ENV !== 'test') {
       });
       const subClient = pubClient.duplicate();
 
-      // Acopla o adapter ao servidor do Socket.io
+      
+      await Promise.all([pubClient.connect(), subClient.connect()]);
+
+      
       io.adapter(createAdapter(pubClient, subClient));
       console.log('[Redis] Socket.io Adapter configurado com sucesso!');
 
@@ -143,6 +147,10 @@ if (process.env.NODE_ENV !== 'test') {
         console.log(`Servidor a correr na porta ${PORT}`);
         console.log(`Socket.IO ativo na porta ${PORT}`);
       });
+
+      // 4. Inicia o Consumer do RabbitMQ (Bridge com Socket.io)
+      await iniciarConsumer(io);
+
     } catch (error) {
       console.error('[Servidor] Erro ao iniciar:', error);
     }
