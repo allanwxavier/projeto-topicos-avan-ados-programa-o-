@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:meu_projeto_faculdade/theme/app_theme.dart';
 import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
 import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
+import 'package:meu_projeto_faculdade/providers/reuniao_provider.dart';
 import 'package:meu_projeto_faculdade/presentation/screens/login_screen.dart';
 import 'package:meu_projeto_faculdade/presentation/screens/kanban_board_screen.dart';
 import 'package:meu_projeto_faculdade/agendamento_reuniao_screen.dart';
@@ -13,6 +14,8 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => KanbanProvider()),
+        
+        ChangeNotifierProvider(create: (_) => ReuniaoProvider()),
       ],
       child: const MyApp(),
     ),

@@ -6,9 +6,9 @@ import 'package:meu_projeto_faculdade/models/kanban_card_model.dart';
 import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
 import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
 import 'package:meu_projeto_faculdade/widgets/gradient_background.dart';
+import 'package:meu_projeto_faculdade/widgets/connection_status_banner.dart';
 
-/// Tela do Kanban Board com drag & drop.
-/// Consome dados do KanbanProvider (que por padrão usa o mock).
+
 class KanbanBoardScreen extends StatefulWidget {
   const KanbanBoardScreen({super.key});
 
@@ -17,13 +17,32 @@ class KanbanBoardScreen extends StatefulWidget {
 }
 
 class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
+
+  late final KanbanProvider _kanban;
+
   @override
   void initState() {
     super.initState();
-    // Carrega os cards ao iniciar
+    _kanban = context.read<KanbanProvider>();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<KanbanProvider>().loadCards();
+      final auth = context.read<AuthProvider>();
+      final token = auth.user?.token;
+
+    
+      _kanban.entrarNoQuadro(
+        'default',
+        token: token,
+        usarApiReal: token != null,
+      );
     });
+  }
+
+  @override
+  void dispose() {
+   
+    _kanban.sairDoQuadro();
+    super.dispose();
   }
 
   @override
@@ -34,6 +53,8 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
           child: Column(
             children: [
               _buildAppBar(),
+           
+              const ConnectionStatusBanner(),
               Expanded(
                 child: Consumer<KanbanProvider>(
                   builder: (context, provider, _) {
@@ -56,7 +77,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     );
   }
 
-  // ─── AppBar customizada ────────────────────────────────────────
+  
   Widget _buildAppBar() {
     final auth = context.read<AuthProvider>();
     return Padding(
@@ -269,7 +290,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
   }
 
   Widget _buildCardTile(KanbanCardModel card) {
-    // Determina os estilos baseado no estado de sincronização
+  
     final isPending = card.syncStatus == SyncStatus.pending;
     final isSyncing = card.syncStatus == SyncStatus.syncing;
     final isFailed = card.syncStatus == SyncStatus.failed;
@@ -330,7 +351,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                     }).toList(),
                   ),
                 if (card.tags.isNotEmpty) const SizedBox(height: 8),
-                // Título (com padding à direita pra não colidir com o badge)
+              
                 Padding(
                   padding: const EdgeInsets.only(right: 22),
                   child: Text(
