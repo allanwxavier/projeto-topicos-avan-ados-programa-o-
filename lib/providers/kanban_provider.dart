@@ -12,7 +12,9 @@ class KanbanProvider extends ChangeNotifier {
   final KanbanMockRepository _mockRepo = KanbanMockRepository();
   final KanbanCommandRepository _commandRepo = KanbanCommandRepository();
   final KanbanQueryRepository _queryRepo = KanbanQueryRepository();
-  final SocketService _socketService = SocketService();
+
+ 
+  final SocketService _socketService = SocketService.instance;
   final Uuid _uuid = const Uuid();
 
   late AppFlowyBoardController boardController;
@@ -20,6 +22,11 @@ class KanbanProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _useRealApi = false;
   bool _isRealtime = false;
+  bool _listenersRegistrados = false;
+
+  /// Id do quadro atual. O projeto trabalha com um board único; se no futuro
+  /// houver múltiplos, basta passar o id real em [entrarNoQuadro].
+  String _kanbanId = 'default';
 
   List<KanbanCardModel> _cards = [];
 
@@ -126,8 +133,6 @@ class KanbanProvider extends ChangeNotifier {
       final idx = _cards.indexWhere((c) => c.id == tempId);
       if (idx != -1) {
         _cards[idx] = realCard.copyWith(syncStatus: SyncStatus.syncing);
-
-        _cards[idx] = realCard;
         _cards[idx].syncStatus = SyncStatus.syncing;
         _buildBoard();
         notifyListeners();
@@ -149,7 +154,7 @@ class KanbanProvider extends ChangeNotifier {
   }
 
   void _onCardMoved(String groupId, int fromIndex, int toIndex) {
-    // Reordenação dentro da mesma coluna — só notifica.
+  
     notifyListeners();
   }
 
@@ -187,11 +192,18 @@ class KanbanProvider extends ChangeNotifier {
       notifyListeners();
     }
 
+    
+    _socketService.emit('card:move', {
+      'kanbanId': _kanbanId,
+      'cardId': cardId,
+      'columnId': toColumnId,
+    });
+
     try {
       await _commandRepo.moveCard(cardId, toColumnId);
     } catch (e) {
       debugPrint('Erro ao mover card: $e');
-      // Rollback: volta para a coluna original.
+      
       if (idx != -1) {
         _cards[idx].columnId = fromColumnId;
         _cards[idx].syncStatus = SyncStatus.failed;
@@ -201,39 +213,59 @@ class KanbanProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> switchToRealApi() async {
-    _useRealApi = true;
-    await _connectWebSocket();
+
+  Future<void> entrarNoQuadro(
+    String kanbanId, {
+    String? token,
+    bool usarApiReal = true,
+  }) async {
+    _kanbanId = kanbanId;
+    _useRealApi = usarApiReal;
+
+    _socketService.connect(token: token);
+    _registrarListeners();
+    _socketService.entrarSalaKanban(kanbanId);
+
+    _isRealtime = true;
     await loadCards();
+    notifyListeners();
   }
+
+  
+  void sairDoQuadro() {
+    _socketService.sairSalaKanban(_kanbanId);
+    _isRealtime = false;
+    notifyListeners();
+  }
+
 
   Future<void> switchToMock() async {
     _useRealApi = false;
     _isRealtime = false;
-    _socketService.disconnect();
+    _socketService.sairSalaKanban(_kanbanId);
     await loadCards();
   }
 
-  Future<void> _connectWebSocket() async {
-    _socketService.connect();
+  void _registrarListeners() {
+    if (_listenersRegistrados) return;
+    _listenersRegistrados = true;
 
     _socketService.on('card:created', (data) {
-      final card = KanbanCardModel.fromJson(data);
+      final card = KanbanCardModel.fromJson(_asMap(data));
       final idx = _cards.indexWhere((c) => c.id == card.id);
-
       if (idx != -1) {
         _cards[idx].syncStatus = SyncStatus.confirmed;
       } else {
-        // Veio de outro usuário.
-        _cards.add(card);
+        _cards.add(card); 
       }
       _buildBoard();
       notifyListeners();
     });
 
     _socketService.on('card:moved', (data) {
-      final cardId = data['cardId'].toString();
-      final newColumn = data['columnId'].toString();
+      final map = _asMap(data);
+      final cardId = map['cardId'].toString();
+      final newColumn = map['columnId'].toString();
       final idx = _cards.indexWhere((c) => c.id == cardId);
       if (idx != -1) {
         _cards[idx].columnId = newColumn;
@@ -244,7 +276,7 @@ class KanbanProvider extends ChangeNotifier {
     });
 
     _socketService.on('card:updated', (data) {
-      final card = KanbanCardModel.fromJson(data);
+      final card = KanbanCardModel.fromJson(_asMap(data));
       final idx = _cards.indexWhere((c) => c.id == card.id);
       if (idx != -1) {
         _cards[idx] = card;
@@ -254,19 +286,22 @@ class KanbanProvider extends ChangeNotifier {
     });
 
     _socketService.on('card:deleted', (data) {
-      final cardId = data['cardId'].toString();
+      final cardId = _asMap(data)['cardId'].toString();
       _cards.removeWhere((c) => c.id == cardId);
       _buildBoard();
       notifyListeners();
     });
-
-    _isRealtime = true;
-    notifyListeners();
   }
+
+  Map<String, dynamic> _asMap(dynamic data) =>
+      data is Map ? Map<String, dynamic>.from(data) : <String, dynamic>{};
 
   @override
   void dispose() {
-    _socketService.disconnect();
+    _socketService.off('card:created');
+    _socketService.off('card:moved');
+    _socketService.off('card:updated');
+    _socketService.off('card:deleted');
     boardController.dispose();
     super.dispose();
   }
