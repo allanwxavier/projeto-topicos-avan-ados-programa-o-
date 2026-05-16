@@ -31,4 +31,11 @@ export class ReuniaoRepository {
       where: { idReuniao }
     });
   }
+
+  async updateStatus(id: number, status: string){
+    return await prisma.reuniao.update({
+      where: { id },
+      data: { status }
+    });
+  }
 }
