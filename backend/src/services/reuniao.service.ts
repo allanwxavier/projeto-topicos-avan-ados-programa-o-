@@ -14,7 +14,18 @@ type CriarReuniaoData = {
 }
 export class ReuniaoService {
   async listarTodas() {
-    return await reuniaoRepository.findAll();
+    const chave = 'reuniao:lista';
+    const cache = await redisService.get(chave);
+
+    if (cache) {
+      console.log(`[Cache] HIT para ${chave}`);
+      return JSON.parse(cache);
+    }
+
+    console.log(`[Cache] MISS para ${chave}`);
+    const reunioes = await reuniaoRepository.findAll();
+    await redisService.set(chave, JSON.stringify(reunioes), 300);
+    return reunioes;
   }
 
   async criar(dados: CriarReuniaoData) {
