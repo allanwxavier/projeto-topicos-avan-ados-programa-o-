@@ -12,6 +12,10 @@ export class ReuniaoRepository {
     return await prisma.reuniao.findMany();
   }
 
+  async findById(id: number) {
+    return await prisma.reuniao.findUnique({ where: { id } });
+  }
+
   async create(dados: CriarReuniaoData ) {
     return await prisma.reuniao.create({ data: dados });
   }

@@ -1,4 +1,5 @@
 import { ReuniaoRepository } from '../repositories/reuniao.repository';
+import { redisService } from './redis.service';
 
 const reuniaoRepository = new ReuniaoRepository();
 
@@ -15,14 +16,47 @@ export class ReuniaoService {
   }
 
   async criar(dados: CriarReuniaoData) {
-    return await reuniaoRepository.create(dados);
+    const reuniao = await reuniaoRepository.create(dados);
+
+    await redisService.del('reuniao:lista');
+
+    return reuniao;
   }
 
   async adicionarParticipante(idReuniao: number, idParticipante: number) {
-    return await reuniaoRepository.addParticipante(idReuniao, idParticipante);
+    const resultado = await reuniaoRepository.addParticipante(idReuniao, idParticipante);
+
+    await redisService.del(`reuniao:item:${idReuniao}`);
+    await redisService.del('reuniao:lista');
+
+    return resultado;
   }
 
   async listarParticipantes(idReuniao: number) {
     return await reuniaoRepository.findParticipantes(idReuniao);
+  }
+
+  async buscarPorId(id:number){
+    const chave = `reuniao:item:${id}`;
+
+    const cache = await
+    redisService.get(chave);
+
+    if (cache) {
+      console.log(`[Cache] HIT para ${chave}`);
+      return JSON.parse(cache);
+    }
+
+    console.log(`[Cache] MISS para ${chave}`);
+    
+    const reuniao = await reuniaoRepository.findById(id);
+    if (reuniao) {
+      await redisService.set(chave, JSON.stringify(reuniao), 300);
+    }
+
+    return reuniao;
+
+
+
   }
 }
