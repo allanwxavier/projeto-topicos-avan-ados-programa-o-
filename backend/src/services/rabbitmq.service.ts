@@ -1,30 +1,55 @@
 import amqp from 'amqplib';
+import { logger } from '../config/logger';
+import { rabbitResilience } from '../config/resilience';
+import { rabbitmqPublishTotal } from '../config/metrics';
+import { getRabbitMQConfig } from '../config/rabbitmq';
 
 export class RabbitMQService {
-  static async enviarParaFila(fila: string, mensagem: any) {
+  /**
+   * Publica uma mensagem em uma fila do RabbitMQ.
+   *
+   * Toda a operação é envolvida pelas políticas do Cockatiel:
+   *   - Retry com backoff exponencial (3 tentativas).
+   *   - Circuit Breaker (5 falhas consecutivas → 10s aberto).
+   */
+  static async enviarParaFila(fila: string, mensagem: any): Promise<void> {
     try {
-      // Conecta ao container do RabbitMQ definido no docker-compose
-      const connection = await amqp.connect({
-        hostname: process.env.RABBITMQ_HOST,
-        port: Number(process.env.RABBITMQ_PORT),
-        username: process.env.RABBITMQ_USER,
-        password: process.env.RABBITMQ_PASSWORD,
-        vhost: process.env.RABBITMQ_VHOST,
-      });
+      await rabbitResilience.execute(() =>
+        RabbitMQService.publishOnce(fila, mensagem),
+      );
+      rabbitmqPublishTotal.inc({ queue: fila, outcome: 'success' });
+    } catch (error: any) {
+      rabbitmqPublishTotal.inc({ queue: fila, outcome: 'failure' });
+      logger.error(
+        { err: error, fila },
+        '[RabbitMQ] Falha definitiva ao enviar mensagem (retry/circuit esgotados)',
+      );
+    }
+  }
 
+  /**
+   * Realiza UMA tentativa de publicação. É essa função que a política
+   * de resiliência repete em caso de falha.
+   */
+  private static async publishOnce(fila: string, mensagem: any): Promise<void> {
+    const connection = await amqp.connect(getRabbitMQConfig() as any);
+
+    try {
       const channel = await connection.createChannel();
-
       await channel.assertQueue(fila, { durable: true });
-      
-      channel.sendToQueue(fila, Buffer.from(JSON.stringify(mensagem)), {
-        persistent: true
-      });
 
-      console.log(`[RabbitMQ] Mensagem enviada para a fila: ${fila}`);
-      
-      setTimeout(() => connection.close(), 500);
-    } catch (error) {
-      console.error("[RabbitMQ] Erro ao enviar mensagem:", error);
+      const payload =
+        typeof mensagem === 'string' ? mensagem : JSON.stringify(mensagem);
+
+      channel.sendToQueue(fila, Buffer.from(payload), { persistent: true });
+
+      logger.info({ fila }, '[RabbitMQ] Mensagem enviada para a fila');
+
+      await channel.close();
+    } finally {
+      await connection.close().catch(() => {
+        /* ignora erro de fechamento — conexão já está sendo derrubada */
+      });
     }
   }
 }

@@ -4,15 +4,21 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import swaggerUi from 'swagger-ui-express';
-import jwt from 'jsonwebtoken'; 
-import { createAdapter } from '@socket.io/redis-adapter'; 
-import { createClient } from 'redis'; 
+import jwt from 'jsonwebtoken';
+import { createAdapter } from '@socket.io/redis-adapter';
+import { createClient } from 'redis';
 import { swaggerSpec } from './config/swagger';
 import authRoutes from './routes/auth.routes';
 import reuniaoRoutes from './routes/reuniao.routes';
 import kanbanRoutes from './routes/kanban.routes';
+import healthRoutes from './routes/health.routes';
+import metricsRoutes from './routes/metrics.routes';
 import { redisService } from './services/redis.service';
 import { iniciarConsumer } from './services/rabbitmq-consumer.service';
+import { logger } from './config/logger';
+import { correlationIdMiddleware } from './middlewares/correlation-id.middleware';
+import { httpLogger } from './middlewares/http-logger.middleware';
+import { metricsMiddleware } from './middlewares/metrics.middleware';
 
 dotenv.config();
 
@@ -34,7 +40,7 @@ app.set('io', io);
 io.use((socket, next) => {
   const handshake = socket.handshake as any;
   const token = handshake.auth?.token || handshake.headers?.['authorization'];
-  
+
   if (!token) {
     return next(new Error('Erro de autenticação: Token não fornecido'));
   }
@@ -43,7 +49,7 @@ io.use((socket, next) => {
 
   try {
     const decoded = jwt.verify(tokenLimpo, process.env.JWT_SECRET as string);
-    (socket as any).user = decoded; 
+    (socket as any).user = decoded;
     next();
   } catch (err) {
     return next(new Error('Erro de autenticação: Token inválido'));
@@ -52,19 +58,19 @@ io.use((socket, next) => {
 
 // ─── Eventos do Socket.IO ───────────────────────────────────────
 io.on('connection', (socket) => {
-  console.log(`[Socket.IO] Cliente conectado: ${socket.id}`);
+  logger.info({ socketId: socket.id }, '[Socket.IO] Cliente conectado');
 
   // LÓGICA DE SALAS PARA KANBAN
   socket.on('kanban:join', (kanbanId) => {
     const roomName = `kanban_${kanbanId}`;
     socket.join(roomName);
-    console.log(`[Socket.IO] Cliente ${socket.id} entrou na sala: ${roomName}`);
+    logger.debug({ socketId: socket.id, roomName }, '[Socket.IO] Entrou na sala');
   });
 
   socket.on('kanban:leave', (kanbanId) => {
     const roomName = `kanban_${kanbanId}`;
     socket.leave(roomName);
-    console.log(`[Socket.IO] Cliente ${socket.id} saiu da sala: ${roomName}`);
+    logger.debug({ socketId: socket.id, roomName }, '[Socket.IO] Saiu da sala');
   });
 
   socket.on('card:move', (data) => {
@@ -73,7 +79,7 @@ io.on('connection', (socket) => {
       const roomName = `kanban_${kanbanId}`;
       socket.to(roomName).emit('card:moved', data);
     } else {
-      console.warn('[Socket.IO] Evento card:move recebido sem kanbanId!');
+      logger.warn('[Socket.IO] Evento card:move recebido sem kanbanId!');
     }
   });
 
@@ -81,13 +87,13 @@ io.on('connection', (socket) => {
   socket.on('reuniao:join', (reuniaoId) => {
     const roomName = `reuniao_${reuniaoId}`;
     socket.join(roomName);
-    console.log(`[Socket.IO] Cliente ${socket.id} entrou na sala: ${roomName}`);
+    logger.debug({ socketId: socket.id, roomName }, '[Socket.IO] Entrou na sala');
   });
 
   socket.on('reuniao:leave', (reuniaoId) => {
     const roomName = `reuniao_${reuniaoId}`;
     socket.leave(roomName);
-    console.log(`[Socket.IO] Cliente ${socket.id} saiu da sala: ${roomName}`);
+    logger.debug({ socketId: socket.id, roomName }, '[Socket.IO] Saiu da sala');
   });
 
   socket.on('reuniao:atualizar_status', (data) => {
@@ -97,23 +103,36 @@ io.on('connection', (socket) => {
     }
   });
 
-  // DESCONEXÃo
+  // DESCONEXÃO
   socket.on('disconnect', () => {
-    console.log(`[Socket.IO] Cliente desconectado: ${socket.id}`);
+    logger.info({ socketId: socket.id }, '[Socket.IO] Cliente desconectado');
   });
 });
 
 const PORT = parseInt(process.env.API_PORT as string, 10) || 8080;
 
+// ─── Middlewares globais (ORDEM IMPORTA) ────────────────────────
+// 1) Correlation ID PRIMEIRO, para todo log ter o id.
+app.use(correlationIdMiddleware);
+// 2) Pino-http já lê o req.id gerado acima.
+app.use(httpLogger);
+// 3) Métricas: timer começa cedo, mas só finaliza no res.on('finish').
+app.use(metricsMiddleware);
+// 4) Demais middlewares
 app.use(cors());
 app.use(express.json());
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
+// ─── Rotas de Observabilidade ───────────────────────────────────
+app.use('/health', healthRoutes);
+app.use('/metrics', metricsRoutes);
+
+// ─── Rotas de Negócio ───────────────────────────────────────────
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reunioes', reuniaoRoutes);
 app.use('/api/v1/kanban', kanbanRoutes);
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'API a correr!' });
 });
 
@@ -123,39 +142,34 @@ if (process.env.NODE_ENV !== 'test') {
     try {
       // 1. Conecta o serviço de cache genérico
       await redisService.redisConnect();
-      console.log('[Redis] Conectado para cache!');
+      logger.info('[Redis] Conectado para cache!');
 
       // 2. Configuração do Redis para o Socket.io (Pub/Sub)
       const pubClient = createClient({
-          password: process.env.REDIS_PASSWORD || undefined,
-          socket: {
-              host: process.env.REDIS_HOST || '127.0.0.1',
-              port: parseInt(process.env.REDIS_PORT as string) || 6379
-          }
+        password: process.env.REDIS_PASSWORD || undefined,
+        socket: {
+          host: process.env.REDIS_HOST || '127.0.0.1',
+          port: parseInt(process.env.REDIS_PORT as string) || 6379,
+        },
       });
       const subClient = pubClient.duplicate();
 
-      
       await Promise.all([pubClient.connect(), subClient.connect()]);
 
-      
       io.adapter(createAdapter(pubClient, subClient));
-      console.log('[Redis] Socket.io Adapter configurado com sucesso!');
+      logger.info('[Redis] Socket.io Adapter configurado com sucesso!');
 
       // 3. Inicia o servidor HTTP
       httpServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`Servidor a correr na porta ${PORT}`);
-        console.log(`Socket.IO ativo na porta ${PORT}`);
+        logger.info({ port: PORT }, `Servidor a correr na porta ${PORT}`);
       });
 
       // 4. Inicia o Consumer do RabbitMQ (Bridge com Socket.io)
       await iniciarConsumer(io);
-
     } catch (error) {
-      console.error('[Servidor] Erro ao iniciar:', error);
+      logger.error({ err: error }, '[Servidor] Erro ao iniciar');
     }
   })();
 }
-
 
 export default app;
