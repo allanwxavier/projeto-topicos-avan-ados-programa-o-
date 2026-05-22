@@ -152,11 +152,38 @@ services:
       - cqrs-net
     restart: unless-stopped
 
+  # 7. Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cqrs_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheusdata:/prometheus
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - cqrs-net
+    restart: unless-stopped
+
+  # 8. Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cqrs_grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    networks:
+      - cqrs-net
+    restart: unless-stopped
+
 volumes:
   pgdata:
   mysqldata:
   rabbitmqdata:
   redisdata:
+  prometheusdata:
+  grafanadata:
 
 networks:
   cqrs-net:
