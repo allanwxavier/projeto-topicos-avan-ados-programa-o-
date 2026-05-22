@@ -1,166 +1,178 @@
-import { Request, Response } from "express";
-import { ReuniaoService } from "../services/reuniao.service";
+import { Request, Response } from 'express';
+import { ReuniaoService } from '../services/reuniao.service';
 import { RabbitMQService } from '../services/rabbitmq.service';
-import crypto from "crypto"; // Adicionado: Gera um ID único para o evento (Idempotência)
+import crypto from 'crypto';
+import { logger } from '../config/logger';
+import {
+  reunioesCriadasTotal,
+  participantesAdicionadosTotal,
+} from '../config/metrics';
 
 const reuniaoService = new ReuniaoService();
 
 export class ReuniaoController {
+  async listar(req: Request, res: Response) {
+    try {
+      const reunioes = await reuniaoService.listarTodas();
+      res.json({ status: 'ok', data: reunioes });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao listar reuniões');
+      res.status(500).json({ status: 'error', message: 'Erro ao listar reuniões' });
+    }
+  }
 
+  async criar(req: Request, res: Response) {
+    const { assunto, local, data, horaInicio, horaFim } = req.body;
 
-    async listar(req: Request, res: Response){
-        try{
-            const reunioes = await reuniaoService.listarTodas();
-            res.json({status: 'ok', data: reunioes});
-        } catch(error) {
-            res.status(500).json({ status: 'error', message: 'Erro ao listar reuniões'});
-        }
+    if (!assunto || !local || !data || !horaInicio || !horaFim) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Campos obrigatórios ausentes.',
+      });
     }
 
-    async criar(req: Request, res: Response) {
-        const { assunto, local, data, horaInicio, horaFim } = req.body;
+    try {
+      // PASSO 1: Gravar no Write Database (Node)
+      const reuniao = await reuniaoService.criar(req.body);
 
-        if (!assunto || !local || !data || !horaInicio || !horaFim) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Campos obrigatórios ausentes.'
-            });
-        }
+      // PASSO 2: Montar a estrutura Padrão do Evento (Idempotência)
+      const evento = {
+        eventId: crypto.randomUUID(),
+        tipo: 'ReuniaoCriadaEvent',
+        dataPublicacao: new Date().toISOString(),
+        payload: {
+          id: reuniao.id,
+          titulo: reuniao.assunto,
+          descricao: reuniao.local,
+          data: reuniao.data,
+          horaInicio: reuniao.horaInicio,
+          horaFim: reuniao.horaFim,
+        },
+      };
 
-        try {
-            // PASSO 1: Gravar no Write Database (Node)
-            const reuniao = await reuniaoService.criar(req.body);
+      await RabbitMQService.enviarParaFila('reuniao_events', evento);
 
-            // PASSO 2: Montar a estrutura Padrão do Evento (Idempotência)
-            const evento = {
-                eventId: crypto.randomUUID(), // Dev 2 usará isso para não duplicar dados
-                tipo: 'ReuniaoCriadaEvent',
-                dataPublicacao: new Date().toISOString(),
-                payload: {
-                    id: reuniao.id,
-                    titulo: reuniao.assunto,
-                    descricao: reuniao.local,
-                    data: reuniao.data,
-                    horaInicio: reuniao.horaInicio,
-                    horaFim: reuniao.horaFim
-                }
-            };
+      // MÉTRICA DE NEGÓCIO
+      reunioesCriadasTotal.inc();
 
-            
-            
-            await RabbitMQService.enviarParaFila('reuniao_events', JSON.stringify(evento));
+      return res.status(201).json({ status: 'ok', data: reuniao });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao criar reunião');
+      return res.status(500).json({ status: 'error', message: 'Erro ao criar reunião' });
+    }
+  }
 
-            
-            return res.status(201).json({ status: 'ok', data: reuniao });
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ status: 'error', message: 'Erro ao criar reunião' });
-        }
+  async adicionarParticipante(req: Request, res: Response) {
+    const { idReuniao, idParticipante } = req.body;
+
+    if (!idReuniao || !idParticipante) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'idReuniao e idParticipante são obrigatórios.',
+      });
     }
 
-    async adicionarParticipante(req: Request, res: Response) {
-        const { idReuniao, idParticipante } = req.body;
+    try {
+      await reuniaoService.adicionarParticipante(idReuniao, idParticipante);
 
-        if(!idReuniao || !idParticipante) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'idReuniao e idParticipante são obrigatórios.'
-            });
-        }
+      const evento = {
+        eventId: crypto.randomUUID(),
+        tipo: 'ParticipanteAdicionadoEvent',
+        dataPublicacao: new Date().toISOString(),
+        payload: {
+          idReuniao,
+          idParticipante,
+        },
+      };
 
-        try {
-            
-            await reuniaoService.adicionarParticipante(idReuniao, idParticipante);
+      await RabbitMQService.enviarParaFila('reuniao_events', evento);
 
-            
-            const evento = {
-                eventId: crypto.randomUUID(),
-                tipo: 'ParticipanteAdicionadoEvent',
-                dataPublicacao: new Date().toISOString(),
-                payload: {
-                    idReuniao,
-                    idParticipante
-                }
-            };
+      // MÉTRICA DE NEGÓCIO
+      participantesAdicionadosTotal.inc();
 
-            await RabbitMQService.enviarParaFila('reuniao_events', JSON.stringify(evento));
+      return res.json({ status: 'ok', message: 'Participante adicionado' });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao adicionar participante');
+      return res
+        .status(500)
+        .json({ status: 'error', message: 'Erro ao adicionar participante' });
+    }
+  }
 
-            return res.json({ status: 'ok', message: 'Participante adicionado' });
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ status: 'error', message: 'Erro ao adicionar participante' });
-        }
+  async listarParticipantes(req: Request, res: Response) {
+    const { idReuniao } = req.body;
+
+    if (!idReuniao) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'idReuniao é obrigatório',
+      });
     }
 
-    async listarParticipantes(req: Request, res: Response) {
-        const { idReuniao } = req.body;    
+    try {
+      const participantes = await reuniaoService.listarParticipantes(idReuniao);
+      res.json({ status: 'ok', data: participantes });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao listar participantes');
+      res
+        .status(500)
+        .json({ status: 'error', message: 'Erro ao listar participantes' });
+    }
+  }
 
-        if (!idReuniao) {
-            return res.status(400).json({ 
-                status: 'error',
-                message: 'idReuniao é obrigatório'
-            });
-        }
+  async buscarPorId(req: Request, res: Response) {
+    const id = Number(req.params.id);
 
-        try {
-            const participantes = await reuniaoService.listarParticipantes(idReuniao);
-            res.json({ status: 'ok', data: participantes });
-        } catch (error) {
-            res.status(500).json({ status: 'error', message: 'Erro ao listar participantes' });
-        }
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID inválido.',
+      });
     }
 
-    async buscarPorId(req: Request, res: Response) {
-        const id = Number(req.params.id);
+    try {
+      const reuniao = await reuniaoService.buscarPorId(id);
 
-        if (isNaN(id)) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'ID inválido.'
-            });
-        }
+      if (!reuniao) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Reunião não encontrada.',
+        });
+      }
 
-        try {
-            const reuniao = await reuniaoService.buscarPorId(id);
+      res.json({ status: 'ok', data: reuniao });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao buscar reunião');
+      res.status(500).json({ status: 'error', message: 'Erro ao buscar reunião' });
+    }
+  }
 
-            if (!reuniao) {
-                return res.status(404).json({
-                    status: 'error',
-                    message: 'Reunião não encontrada.'
-                });
-            }
+  async atualizarStatus(req: Request, res: Response) {
+    const id = Number(req.params.id);
+    const { status } = req.body;
 
-            res.json({ status: 'ok', data: reuniao });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ status: 'error', message: 'Erro ao buscar reunião' });
-        }
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID inválido.',
+      });
     }
 
-    async atualizarStatus(req: Request, res: Response) {
-        const id = Number(req.params.id);
-        const { status } = req.body;
-
-        if (isNaN(id)) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'ID inválido.'
-            });
-        }
-
-        if (!status) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'O campo status é obrigatório.'
-            });
-        }
-
-        try {
-            const reuniao = await reuniaoService.atualizarStatus(id, status);
-            return res.json({ status: 'ok', data: reuniao });
-        } catch (error) {
-            console.error(error);
-            return res.status(500).json({ status: 'error', message: 'Erro ao atualizar o status da reunião' });
-        }
+    if (!status) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'O campo status é obrigatório.',
+      });
     }
+
+    try {
+      const reuniao = await reuniaoService.atualizarStatus(id, status);
+      return res.json({ status: 'ok', data: reuniao });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao atualizar status da reunião');
+      return res
+        .status(500)
+        .json({ status: 'error', message: 'Erro ao atualizar o status da reunião' });
+    }
+  }
 }
