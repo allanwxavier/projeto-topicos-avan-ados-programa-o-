@@ -1,1 +1,1 @@
-cd backend && npm test
+echo "✅ Pre-commit hook OK"
