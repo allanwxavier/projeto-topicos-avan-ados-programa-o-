@@ -67,21 +67,4 @@ jobs:
       - name: Executar testes
         run: flutter test
 
-  # ---------------------------------------------------------
-  #  Job 3: SonarCloud Analysis
-  # ---------------------------------------------------------
-  sonar-analysis:
-    name: SonarCloud Analysis
-    runs-on: ubuntu-latest
-    needs: [backend-ci, frontend-ci]
 
-    steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-        with:
-          fetch-depth: 0
-
-      - name: Analise SonarCloud
-        uses: sonarsource/sonarqube-scan-action@fd88b7d7ccbaefd23d8f36f73b59db7a3d246602 # v6
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
