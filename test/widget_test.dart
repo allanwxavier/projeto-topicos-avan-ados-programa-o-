@@ -20,8 +20,10 @@ void main() {
       ),
     );
 
-    // Espera todas as animações de carregamento terminarem
-    await tester.pumpAndSettle();
+    // Espera um pouco para a tela renderizar, mas não usamos pumpAndSettle
+    // porque o GradientBackground tem uma animação infinita (repeat), o que
+    // causa timeout no pumpAndSettle.
+    await tester.pump(const Duration(seconds: 2));
 
     // Procura por textos que sabemos que existem na tela de Login
     expect(find.text('MeetSync'), findsWidgets);
