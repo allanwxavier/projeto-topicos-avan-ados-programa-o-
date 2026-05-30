@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:meu_projeto_faculdade/core/api_client.dart';
 import 'package:meu_projeto_faculdade/core/api_config.dart';
 
@@ -33,7 +34,7 @@ class ReuniaoApiRepository {
         return data; 
       },
       failure: (message, statusCode) {
-        print('Erro ao criar reunião: $message');
+        debugPrint('Erro ao criar reunião: $message');
         return null; // ou lançar uma exceção, dependendo de como geres erros na UI
       },
     );
