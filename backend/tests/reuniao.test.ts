@@ -1,6 +1,12 @@
 import request from 'supertest';
 import app from '../src/server';
 
+jest.mock('../src/middlewares/auth.middleware', () => ({
+  authMiddleware: (req: any, res: any, next: any) => {
+    req.user = { id: 1, nome: 'Test User' };
+    next();
+  }
+}));
 
 jest.mock('@prisma/client', () => {
   return {
