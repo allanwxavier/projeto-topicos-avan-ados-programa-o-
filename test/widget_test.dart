@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -8,8 +7,9 @@ import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
 import 'package:meu_projeto_faculdade/providers/reuniao_provider.dart';
 
 void main() {
-  testWidgets('Smoke test: o app sobe na tela de login (MeetSync)',
-      (WidgetTester tester) async {
+  testWidgets('Smoke test: o app sobe na tela de login (MeetSync)', (
+    WidgetTester tester,
+  ) async {
     // Reproduz a árvore de main(): MyApp NÃO embrulha os providers sozinho,
     // então precisamos fornecê-los aqui para evitar ProviderNotFoundException.
     await tester.pumpWidget(
