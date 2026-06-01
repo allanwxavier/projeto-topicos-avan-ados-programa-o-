@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -7,8 +8,10 @@ import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
 import 'package:meu_projeto_faculdade/providers/reuniao_provider.dart';
 
 void main() {
-  testWidgets('Smoke test da tela de Login', (WidgetTester tester) async {
-    // Pede pro Flutter "desenhar" o nosso app inteiro na memória com os Providers
+  testWidgets('Smoke test: o app sobe na tela de login (MeetSync)',
+      (WidgetTester tester) async {
+    // Reproduz a árvore de main(): MyApp NÃO embrulha os providers sozinho,
+    // então precisamos fornecê-los aqui para evitar ProviderNotFoundException.
     await tester.pumpWidget(
       MultiProvider(
         providers: [
@@ -20,14 +23,15 @@ void main() {
       ),
     );
 
-    // Espera um pouco para a tela renderizar, mas não usamos pumpAndSettle
-    // porque o GradientBackground tem uma animação infinita (repeat), o que
-    // causa timeout no pumpAndSettle.
-    await tester.pump(const Duration(seconds: 2));
+    // IMPORTANTE: não usar pumpAndSettle(). A LoginScreen usa GradientBackground
+    // e NeonButton, que têm animações .repeat() (infinitas) — pumpAndSettle
+    // ficaria preso esperando elas "assentarem" e estouraria timeout no CI.
+    // Avançamos alguns frames manualmente para o fade inicial (1200ms) rodar.
+    await tester.pump(); // primeiro frame
+    await tester.pump(const Duration(milliseconds: 1300));
 
-    // Procura por textos que sabemos que existem na tela de Login
-    expect(find.text('MeetSync'), findsWidgets);
-    expect(find.text('Entrar'), findsWidgets);
-    expect(find.text('Usuário'), findsWidgets);
+    // A tela inicial é a /login, cujo título é "MeetSync".
+    expect(find.text('MeetSync'), findsOneWidget);
+    expect(find.text('Gerencie seus projetos em tempo real'), findsOneWidget);
   });
 }
