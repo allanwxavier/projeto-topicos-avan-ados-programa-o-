@@ -1,9 +1,5 @@
 # Sistema de Gestão de Reuniões e Kanban (TAC)
 
-[![CI](https://github.com/allanwxavier/projeto-topicos-avan-ados-programa-o-/actions/workflows/ci.yml/badge.svg)](https://github.com/allanwxavier/projeto-topicos-avan-ados-programa-o-/actions/workflows/ci.yml)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=<project-key>&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=<project-key>)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=<project-key>&metric=coverage)](https://sonarcloud.io/summary/new_code?id=<project-key>)
-
 Este projeto foi desenvolvido como parte da 2ª Avaliação da disciplina de **Tópicos Avançados em Computação**, focando-se em Arquitetura Moderna de Software e sistemas distribuídos utilizando uma abordagem Full Cycle.
 
 ## 🚀 Visão Geral
@@ -43,4 +39,3 @@ A solução materializa um sistema de microsserviços para gestão colaborativa,
 Para subir todo o ambiente distribuído (Base de Dados, RabbitMQ e API):
 ```bash
 docker-compose up -d
-```
