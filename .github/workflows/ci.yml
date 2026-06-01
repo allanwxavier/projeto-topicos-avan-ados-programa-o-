@@ -97,29 +97,3 @@ jobs:
       - name: Executar testes
         run: flutter test
 
-
-  # ---------------------------------------------------------
-  #  Job 3: SonarCloud Analysis
-  # ---------------------------------------------------------
-  sonar-analysis:
-    name: SonarCloud Code Analysis
-    runs-on: ubuntu-latest
-    # Este job só roda depois que o backend e frontend passarem
-    needs: [backend-ci, frontend-ci] 
-    
-    steps:
-      - name: Checkout do codigo
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # O Sonar precisa de todo o histórico para a análise
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        with:
-          # Isso força o scanner a ler o seu arquivo sonar-project.properties
-          args: >
-            -Dsonar.organization=allanwxavier
-            -Dsonar.projectKey=allanwxavier_projeto-topicos-avan-ados-programa-o-
