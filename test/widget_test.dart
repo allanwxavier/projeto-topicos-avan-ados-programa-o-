@@ -1,22 +1,37 @@
-
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 
-// O import principal do seu app
 import 'package:meu_projeto_faculdade/main.dart';
+import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
+import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
+import 'package:meu_projeto_faculdade/providers/reuniao_provider.dart';
 
 void main() {
-  testWidgets('Smoke test da tela de Nova Reunião', (WidgetTester tester) async {
-    // 1. Pede pro Flutter "desenhar" o nosso app inteiro na memória
-    await tester.pumpWidget(const MyApp());
+  testWidgets('Smoke test: o app sobe na tela de login (MeetSync)', (
+    WidgetTester tester,
+  ) async {
+    // Reproduz a árvore de main(): MyApp NÃO embrulha os providers sozinho,
+    // então precisamos fornecê-los aqui para evitar ProviderNotFoundException.
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()),
+          ChangeNotifierProvider(create: (_) => KanbanProvider()),
+          ChangeNotifierProvider(create: (_) => ReuniaoProvider()),
+        ],
+        child: const MyApp(),
+      ),
+    );
 
-    // 2. Espera todas as animações de carregamento terminarem
-    await tester.pumpAndSettle();
+    // IMPORTANTE: não usar pumpAndSettle(). A LoginScreen usa GradientBackground
+    // e NeonButton, que têm animações .repeat() (infinitas) — pumpAndSettle
+    // ficaria preso esperando elas "assentarem" e estouraria timeout no CI.
+    // Avançamos alguns frames manualmente para o fade inicial (1200ms) rodar.
+    await tester.pump(); // primeiro frame
+    await tester.pump(const Duration(milliseconds: 1300));
 
-    // 3. Procura algum texto que sabemos que existe na nossa tela inicial.
-    // Baseado no seu código, a AppBar da tela inicial tem o texto "Nova Reunião"
-    expect(find.text('Nova Reunião'), findsWidgets);
-    
-    // Podemos também verificar se o campo de "Assunto" está lá!
-    expect(find.text('Assunto'), findsWidgets);
+    // A tela inicial é a /login, cujo título é "MeetSync".
+    expect(find.text('MeetSync'), findsOneWidget);
+    expect(find.text('Gerencie seus projetos em tempo real'), findsOneWidget);
   });
 }

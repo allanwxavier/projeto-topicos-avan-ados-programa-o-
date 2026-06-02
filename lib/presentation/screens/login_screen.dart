@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen>
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.mockLogin(
+    final success = await auth.login(
       _nameController.text,
       _passwordController.text,
     );
