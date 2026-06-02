@@ -1,0 +1,125 @@
+# =================================================================
+#  CI Pipeline - Backend + Frontend + SonarCloud
+# =================================================================
+
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+
+  # ---------------------------------------------------------
+  #  Job 1: Backend CI (Node.js + Jest)
+  # ---------------------------------------------------------
+  backend-ci:
+    name: Backend CI
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: "postgresql://postgres:password@localhost:5432/gestaopedidos_test?schema=public"
+      JWT_SECRET: "chave_secreta_super_segura_de_teste_123"
+      REDIS_HOST: "localhost"
+      REDIS_PORT: 6379
+      RABBITMQ_URL: "amqp://guest:guest@localhost:5672"
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: gestaopedidos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Gerar Prisma Client
+        run: npx prisma generate
+
+      - name: Aplicar Migrations no Banco de Teste do CI
+        run: npx prisma migrate deploy
+
+      - name: Compilar TypeScript
+        run: npm run build
+
+      - name: Executar testes com Cobertura
+        run: DATABASE_URL="postgresql://postgres:password@localhost:5432/gestaopedidos_test?schema=public" npm test -- --coverage
+
+
+  # ---------------------------------------------------------
+  #  Job 2: Frontend CI (Flutter)
+  # ---------------------------------------------------------
+  frontend-ci:
+    name: Frontend CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Configurar Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: 'stable'
+
+      - name: Instalar dependencias
+        run: flutter pub get
+
+      - name: Analisar projeto
+        run: flutter analyze
+
+      - name: Executar testes
+        run: flutter test
+
+
+  # ---------------------------------------------------------
+  #  Job 3: SonarCloud Analysis
+  # ---------------------------------------------------------
+  sonar-analysis:
+    name: SonarCloud Code Analysis
+    runs-on: ubuntu-latest
+    # Este job só roda depois que o backend e frontend passarem
+    needs: [backend-ci, frontend-ci] 
+    
+    steps:
+      - name: Checkout do codigo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # O Sonar precisa de todo o histórico para a análise
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          # Isso força o scanner a ler o seu arquivo sonar-project.properties
+          args: >
+            -Dsonar.organization=allanwxavier
+            -Dsonar.projectKey=allanwxavier_projeto-topicos-avan-ados-programa-o-

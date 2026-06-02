@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:meu_projeto_faculdade/core/api_client.dart';
 import 'package:meu_projeto_faculdade/core/api_config.dart';
 import 'package:flutter/foundation.dart';
