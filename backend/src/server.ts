@@ -13,6 +13,7 @@ import reuniaoRoutes from './routes/reuniao.routes';
 import kanbanRoutes from './routes/kanban.routes';
 import healthRoutes from './routes/health.routes';
 import metricsRoutes from './routes/metrics.routes';
+import versionRoutes from './routes/version.routes';
 import { redisService } from './services/redis.service';
 import { iniciarConsumer } from './services/rabbitmq-consumer.service';
 import { logger } from './config/logger';
@@ -131,6 +132,7 @@ app.use('/metrics', metricsRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/reunioes', reuniaoRoutes);
 app.use('/api/v1/kanban', kanbanRoutes);
+app.use('/api/v1/version', versionRoutes);
 
 app.get('/', (_req, res) => {
   res.json({ status: 'ok', message: 'API a correr!' });

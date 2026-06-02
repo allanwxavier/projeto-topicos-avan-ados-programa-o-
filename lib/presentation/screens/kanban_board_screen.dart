@@ -7,7 +7,7 @@ import 'package:meu_projeto_faculdade/providers/kanban_provider.dart';
 import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
 import 'package:meu_projeto_faculdade/widgets/gradient_background.dart';
 import 'package:meu_projeto_faculdade/widgets/connection_status_banner.dart';
-
+import 'package:meu_projeto_faculdade/widgets/version_footer_widget.dart';
 
 class KanbanBoardScreen extends StatefulWidget {
   const KanbanBoardScreen({super.key});
@@ -17,7 +17,6 @@ class KanbanBoardScreen extends StatefulWidget {
 }
 
 class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
-
   late final KanbanProvider _kanban;
 
   @override
@@ -29,7 +28,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
       final auth = context.read<AuthProvider>();
       final token = auth.user?.token;
 
-    
       _kanban.entrarNoQuadro(
         'default',
         token: token,
@@ -40,7 +38,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
 
   @override
   void dispose() {
-   
     _kanban.sairDoQuadro();
     super.dispose();
   }
@@ -53,7 +50,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
           child: Column(
             children: [
               _buildAppBar(),
-           
+
               const ConnectionStatusBanner(),
               Expanded(
                 child: Consumer<KanbanProvider>(
@@ -69,6 +66,9 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                   },
                 ),
               ),
+              // Rodapé de versão (Dev 3): consome GET /api/v1/version e exibe
+              // versão + ambiente. Fica fixo na base, dentro do SafeArea.
+              const VersionFooterWidget(),
             ],
           ),
         ),
@@ -77,7 +77,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
     );
   }
 
-  
   Widget _buildAppBar() {
     final auth = context.read<AuthProvider>();
     return Padding(
@@ -290,7 +289,6 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
   }
 
   Widget _buildCardTile(KanbanCardModel card) {
-  
     final isPending = card.syncStatus == SyncStatus.pending;
     final isSyncing = card.syncStatus == SyncStatus.syncing;
     final isFailed = card.syncStatus == SyncStatus.failed;
@@ -351,7 +349,7 @@ class _KanbanBoardScreenState extends State<KanbanBoardScreen> {
                     }).toList(),
                   ),
                 if (card.tags.isNotEmpty) const SizedBox(height: 8),
-              
+
                 Padding(
                   padding: const EdgeInsets.only(right: 22),
                   child: Text(

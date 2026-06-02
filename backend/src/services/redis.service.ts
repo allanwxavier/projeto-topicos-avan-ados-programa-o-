@@ -29,14 +29,17 @@ export class redisService {
   }
 
   static async get(chave: string) {
+    if (!redisService.client) return null;
     return await redisService.client.get(chave);
   }
 
   static async set(chave: string, valor: string, ttl: number) {
+    if (!redisService.client) return;
     await redisService.client.set(chave, valor, { EX: ttl });
   }
 
   static async del(chave: string) {
+    if (!redisService.client) return;
     await redisService.client.del(chave);
   }
 
