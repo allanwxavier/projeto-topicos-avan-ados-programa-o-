@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:meu_projeto_faculdade/providers/auth_provider.dart';
+import 'package:meu_projeto_faculdade/repositories/reuniao_api_repository.dart';
 
 import 'package:meu_projeto_faculdade/dtos/user_dto.dart';
 import 'package:meu_projeto_faculdade/reuniao/checkbox_model.dart';
@@ -330,21 +331,46 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       ];
     });
   }
-
   Future<void> setReuniao() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Sucesso!"),
-        content: const Text("Reunião agendada com sucesso."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
+    final repo = ReuniaoApiRepository();
+
+    final resultado = await repo.criarReuniao(
+      assunto: _assuntoController.text,
+      local: _localController.text,
+      data: _dataReuniaoController.text,
+      horaInicio: _horaInicioController.text,
+      horaFim: _horaFimController.text,
     );
+
+    if (!mounted) return;
+
+    if (resultado != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Sucesso!"),
+          content: const Text("Reunião agendada com sucesso."),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);  // Fecha o dialog
+                Navigator.pop(context);  // Volta para a tela anterior
+              },
+              child: const Text("OK"),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Erro ao criar reunião. Verifique a conexão.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   }
 
   void openDialogAddParticipante() {
