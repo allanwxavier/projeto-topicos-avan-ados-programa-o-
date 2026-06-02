@@ -371,8 +371,6 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
     }
   }
 
-  }
-
   void openDialogAddParticipante() {
     showModalBottomSheet(
       context: context,
