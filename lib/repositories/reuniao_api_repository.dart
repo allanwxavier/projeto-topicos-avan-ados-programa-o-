@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:meu_projeto_faculdade/core/api_client.dart';
 import 'package:meu_projeto_faculdade/core/api_config.dart';
-import 'package:flutter/foundation.dart';
+
 
 /// Repositório de Reuniões conectado à API do Node.js.
 /// Usa o [ApiClient] configurado com a URL das Reuniões.
