@@ -12,15 +12,21 @@ export class redisService {
   private static client: ReturnType<typeof createClient>;
 
   static async redisConnect() {
-    const client = createClient({
-      password: process.env.REDIS_PASSWORD || undefined,
-      socket: {
-        host: process.env.REDIS_HOST || '127.0.0.1',
-        port: parseInt(process.env.REDIS_PORT as string) || 6379,
-      },
-    });
+    const redisOptions: any = process.env.REDIS_URL
+      ? { url: process.env.REDIS_URL }
+      : (process.env.REDIS_HOST?.startsWith('redis://') || process.env.REDIS_HOST?.startsWith('rediss://')
+         ? { url: process.env.REDIS_HOST }
+         : {
+             password: process.env.REDIS_PASSWORD || undefined,
+             socket: {
+               host: process.env.REDIS_HOST || '127.0.0.1',
+               port: parseInt(process.env.REDIS_PORT as string) || 6379,
+             }
+           });
 
-    client.on('error', (err) =>
+    const client = createClient(redisOptions);
+
+    client.on('error', (err: any) =>
       logger.error({ err }, '[Redis Cache] Erro de conexão'),
     );
 
