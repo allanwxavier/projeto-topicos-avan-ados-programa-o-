@@ -62,6 +62,44 @@ export class ReuniaoController {
     }
   }
 
+  async atualizar(req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID inválido.',
+      });
+    }
+
+    try {
+      const reuniao = await reuniaoService.atualizar(id, req.body);
+      return res.json({ status: 'ok', data: reuniao });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao atualizar reunião');
+      return res.status(500).json({ status: 'error', message: 'Erro ao atualizar reunião' });
+    }
+  }
+
+  async deletar(req: Request, res: Response) {
+    const id = Number(req.params.id);
+
+    if (isNaN(id)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'ID inválido.',
+      });
+    }
+
+    try {
+      await reuniaoService.deletar(id);
+      return res.json({ status: 'ok', message: 'Reunião deletada com sucesso' });
+    } catch (error) {
+      (req as any).log?.error({ err: error }, 'Erro ao deletar reunião');
+      return res.status(500).json({ status: 'error', message: 'Erro ao deletar reunião' });
+    }
+  }
+
   async adicionarParticipante(req: Request, res: Response) {
     const { idReuniao, idParticipante } = req.body;
 

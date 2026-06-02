@@ -23,7 +23,11 @@ class _LoginScreenState extends State<LoginScreen>
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _matriculaController = TextEditingController();
+  final _cargoController = TextEditingController();
+  final _setorController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isLogin = true;
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -53,18 +57,33 @@ class _LoginScreenState extends State<LoginScreen>
   void dispose() {
     _nameController.dispose();
     _passwordController.dispose();
+    _matriculaController.dispose();
+    _cargoController.dispose();
+    _setorController.dispose();
     _fadeController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
     final auth = context.read<AuthProvider>();
-    final success = await auth.login(
-      _nameController.text,
-      _passwordController.text,
-    );
+    bool success;
+
+    if (_isLogin) {
+      success = await auth.login(
+        _nameController.text,
+        _passwordController.text,
+      );
+    } else {
+      success = await auth.register(
+        _nameController.text,
+        _passwordController.text,
+        _matriculaController.text,
+        _cargoController.text,
+        _setorController.text,
+      );
+    }
 
     if (!mounted) return;
 
@@ -130,17 +149,38 @@ class _LoginScreenState extends State<LoginScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'Entrar',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _isLogin ? 'Entrar' : 'Criar Conta',
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.textPrimary,
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _isLogin = !_isLogin;
+                                      });
+                                    },
+                                    child: Text(
+                                      _isLogin ? 'Criar Conta' : 'Fazer Login',
+                                      style: const TextStyle(
+                                        color: AppTheme.neonCyan,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Acesse sua conta para continuar',
+                                _isLogin
+                                    ? 'Acesse sua conta para continuar'
+                                    : 'Preencha os dados para se cadastrar',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: AppTheme.textSecondary
@@ -149,15 +189,56 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 28),
                               FuturisticTextField(
-                                label: 'Usuário',
-                                hintText: 'Seu nome de acesso',
+                                label: _isLogin ? 'Usuário' : 'Nome Completo',
+                                hintText: _isLogin ? 'Seu nome de acesso' : 'Seu nome completo',
                                 controller: _nameController,
                                 prefixIcon: Icons.person_outline_rounded,
                                 validator: (v) =>
                                     v == null || v.trim().isEmpty
-                                        ? 'Informe seu usuário'
+                                        ? 'Informe seu nome'
                                         : null,
                               ),
+                              if (!_isLogin) ...[
+                                const SizedBox(height: 18),
+                                FuturisticTextField(
+                                  label: 'Matrícula',
+                                  hintText: '1 a 6 dígitos numéricos',
+                                  controller: _matriculaController,
+                                  prefixIcon: Icons.badge_outlined,
+                                  keyboardType: TextInputType.number,
+                                  validator: (v) {
+                                    if (v == null || v.trim().isEmpty) {
+                                      return 'Informe sua matrícula';
+                                    }
+                                    if (v.length > 6 || int.tryParse(v) == null) {
+                                      return 'Matrícula inválida (máx 6 dígitos)';
+                                    }
+                                    return null;
+                                  },
+                                ),
+                                const SizedBox(height: 18),
+                                FuturisticTextField(
+                                  label: 'Cargo',
+                                  hintText: 'Seu cargo na empresa',
+                                  controller: _cargoController,
+                                  prefixIcon: Icons.work_outline_rounded,
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
+                                          ? 'Informe seu cargo'
+                                          : null,
+                                ),
+                                const SizedBox(height: 18),
+                                FuturisticTextField(
+                                  label: 'Setor',
+                                  hintText: 'Seu setor de atuação',
+                                  controller: _setorController,
+                                  prefixIcon: Icons.business_center_outlined,
+                                  validator: (v) =>
+                                      v == null || v.trim().isEmpty
+                                          ? 'Informe seu setor'
+                                          : null,
+                                ),
+                              ],
                               const SizedBox(height: 18),
                               FuturisticTextField(
                                 label: 'Senha',
@@ -219,11 +300,11 @@ class _LoginScreenState extends State<LoginScreen>
                               Consumer<AuthProvider>(
                                 builder: (_, auth, __) {
                                   return NeonButton(
-                                    text: 'ACESSAR',
-                                    icon: Icons.arrow_forward_rounded,
+                                    text: _isLogin ? 'ACESSAR' : 'CADASTRAR',
+                                    icon: _isLogin ? Icons.arrow_forward_rounded : Icons.person_add_rounded,
                                     isLoading: auth.isLoading,
                                     onPressed:
-                                        auth.isLoading ? null : _handleLogin,
+                                        auth.isLoading ? null : _handleSubmit,
                                   );
                                 },
                               ),

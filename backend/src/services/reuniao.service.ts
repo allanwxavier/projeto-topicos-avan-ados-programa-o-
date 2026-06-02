@@ -36,6 +36,49 @@ export class ReuniaoService {
     return reuniao;
   }
 
+  async atualizar(id: number, dados: Partial<CriarReuniaoData>) {
+    const reuniaoAtualizada = await reuniaoRepository.update(id, dados);
+
+    await redisService.del(`reuniao:item:${id}`);
+    await redisService.del('reuniao:lista');
+
+    const evento = {
+      eventId: crypto.randomUUID(),
+      tipo: 'ReuniaoAtualizadaEvent',
+      dataPublicacao: new Date().toISOString(),
+      payload: {
+        id: reuniaoAtualizada.id,
+        titulo: reuniaoAtualizada.assunto,
+        descricao: reuniaoAtualizada.local,
+        data: reuniaoAtualizada.data,
+        horaInicio: reuniaoAtualizada.horaInicio,
+        horaFim: reuniaoAtualizada.horaFim,
+      }
+    };
+
+    await RabbitMQService.enviarParaFila('reuniao_events', evento);
+
+    return reuniaoAtualizada;
+  }
+
+  async deletar(id: number) {
+    const reuniao = await reuniaoRepository.delete(id);
+
+    await redisService.del(`reuniao:item:${id}`);
+    await redisService.del('reuniao:lista');
+
+    const evento = {
+      eventId: crypto.randomUUID(),
+      tipo: 'ReuniaoDeletadaEvent',
+      dataPublicacao: new Date().toISOString(),
+      payload: { id }
+    };
+
+    await RabbitMQService.enviarParaFila('reuniao_events', evento);
+
+    return reuniao;
+  }
+
   async adicionarParticipante(idReuniao: number, idParticipante: number) {
     const resultado = await reuniaoRepository.addParticipante(idReuniao, idParticipante);
 

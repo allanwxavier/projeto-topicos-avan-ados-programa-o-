@@ -39,6 +39,62 @@ class ReuniaoApiRepository {
       },
     );
   }
+  Future<Map<String, dynamic>?> atualizarReuniao({
+    required int id,
+    required String assunto,
+    required String local,
+    required String data,
+    required String horaInicio,
+    required String horaFim,
+  }) async {
+    final result = await _apiClient.put(
+      '/reunioes/$id',
+      body: {
+        'assunto': assunto,
+        'local': local,
+        'data': data,
+        'horaInicio': horaInicio,
+        'horaFim': horaFim,
+      },
+    );
+
+    return result.when(
+      success: (data) => data,
+      failure: (message, statusCode) {
+        debugPrint('Erro ao atualizar reunião: $message');
+        return null;
+      },
+    );
+  }
+
+  Future<Map<String, dynamic>?> atualizarStatusReuniao(int id, String status) async {
+    final result = await _apiClient.patch(
+      '/reunioes/$id/status',
+      body: {
+        'status': status,
+      },
+    );
+
+    return result.when(
+      success: (data) => data,
+      failure: (message, statusCode) {
+        debugPrint('Erro ao atualizar status da reunião: $message');
+        return null;
+      },
+    );
+  }
+
+  Future<bool> deletarReuniao(int id) async {
+    final result = await _apiClient.delete('/reunioes/$id');
+
+    return result.when(
+      success: (_) => true,
+      failure: (message, statusCode) {
+        debugPrint('Erro ao deletar reunião: $message');
+        return false;
+      },
+    );
+  }
 
 
   /// Busca todas as reuniões agendadas

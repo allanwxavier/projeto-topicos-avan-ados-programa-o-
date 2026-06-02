@@ -14,12 +14,15 @@ export class AuthRepository{
         });
     }
 
-    async create (dados: { name: string; password: string}) {
+    async create (dados: { name: string; password: string; matricula?: string; cargo?: string; setor?: string }) {
 
         return await prisma.usuario.create({
             data: {
                 name: dados.name,
-                password: dados.password
+                password: dados.password,
+                matricula: dados.matricula,
+                cargo: dados.cargo,
+                setor: dados.setor
             }
         });
     }
