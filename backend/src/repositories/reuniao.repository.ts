@@ -20,6 +20,24 @@ export class ReuniaoRepository {
     return await prisma.reuniao.create({ data: dados });
   }
 
+  async update(id: number, dados: Partial<CriarReuniaoData>) {
+    return await prisma.reuniao.update({
+      where: { id },
+      data: dados
+    });
+  }
+
+  async delete(id: number) {
+    // Delete os participantes vinculados primeiro para evitar erro de Foreign Key
+    await prisma.participanteReuniao.deleteMany({
+      where: { idReuniao: id }
+    });
+
+    return await prisma.reuniao.delete({
+      where: { id }
+    });
+  }
+
   async addParticipante(idReuniao: number, idParticipante: number) {
     return await prisma.participanteReuniao.create({
       data: { idReuniao, idParticipante }

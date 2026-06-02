@@ -100,6 +100,25 @@ class ApiClient {
     }
   }
 
+  /// Requisição PATCH com body JSON.
+  Future<Result<Map<String, dynamic>>> patch(
+    String path, {
+    Map<String, dynamic>? body,
+    bool withAuth = true,
+  }) async {
+    try {
+      final headers = await _buildHeaders(withAuth: withAuth);
+      final response = await _client.patch(
+        Uri.parse('$baseUrl$path'),
+        headers: headers,
+        body: body != null ? json.encode(body) : null,
+      );
+      return _handleResponse(response);
+    } catch (e) {
+      return Result.failure('Erro de conexão: ${e.toString()}');
+    }
+  }
+
   /// Requisição DELETE.
   Future<Result<Map<String, dynamic>>> delete(
     String path, {

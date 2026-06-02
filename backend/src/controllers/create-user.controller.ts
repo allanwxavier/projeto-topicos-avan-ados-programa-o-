@@ -7,9 +7,9 @@ const registerService = new RegisterService();
 export class CreateUserController {
   async handle(req: Request, res: Response) {
     try {
-      const { name, password } = req.body;
+      const { name, password, matricula, cargo, setor } = req.body;
 
-      const user = await registerService.execute(name, password);
+      const user = await registerService.execute(name, password, matricula, cargo, setor);
 
       // MÉTRICA DE NEGÓCIO
       usuariosRegistradosTotal.inc();
