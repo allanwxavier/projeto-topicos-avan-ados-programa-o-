@@ -12,6 +12,9 @@ model Usuario {
   name      String
   password  String
   token     String?
+  matricula String?
+  cargo     String?
+  setor     String?
   criadoEm  DateTime @default(now())
 
   participacoes ParticipanteReuniao[]

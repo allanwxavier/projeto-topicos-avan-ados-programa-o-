@@ -4,7 +4,7 @@ import { AuthRepository } from '../repositories/auth.repository';
 const authRepository = new AuthRepository();
 
 export class RegisterService {
-    async execute(name: string, passwordPura: string) {
+    async execute(name: string, passwordPura: string, matricula?: string, cargo?: string, setor?: string) {
 
         const usuarioExistente = await authRepository.findByName(name);
         if (usuarioExistente) {
@@ -16,7 +16,10 @@ export class RegisterService {
 
         const novoUsuario = await authRepository.create({
             name,
-            password: senhaHasheada
+            password: senhaHasheada,
+            matricula,
+            cargo,
+            setor
         });
 
         return {

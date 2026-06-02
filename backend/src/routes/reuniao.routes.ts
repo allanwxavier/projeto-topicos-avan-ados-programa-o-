@@ -45,6 +45,8 @@ router.post('/', authMiddleware, reuniaoController.criar);
 router.post('/participantes/adicionar', reuniaoController.adicionarParticipante);
 router.post('/participantes/listar', reuniaoController.listarParticipantes);
 router.get('/:id', reuniaoController.buscarPorId);
+router.put('/:id', authMiddleware, reuniaoController.atualizar);
+router.delete('/:id', authMiddleware, reuniaoController.deletar);
 router.patch('/:id/status', authMiddleware, reuniaoController.atualizarStatus);
 
 export default router;

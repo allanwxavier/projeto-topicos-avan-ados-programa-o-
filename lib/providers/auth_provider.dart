@@ -100,6 +100,37 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
+  Future<bool> register(String name, String password, String matricula, String cargo, String setor) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await _apiClient.post(
+      '/auth/register',
+      body: {
+        'name': name,
+        'password': password,
+        'matricula': matricula,
+        'cargo': cargo,
+        'setor': setor,
+      },
+      withAuth: false,
+    );
+
+    return result.when(
+      success: (data) async {
+        // Após cadastrar com sucesso, tenta fazer login automático
+        return await login(name, password);
+      },
+      failure: (message, _) {
+        _errorMessage = message;
+        _isLoading = false;
+        notifyListeners();
+        return false;
+      },
+    );
+  }
+
   Future<void> tryAutoLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final userJson = prefs.getString('user');
