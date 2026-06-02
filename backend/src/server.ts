@@ -110,7 +110,7 @@ io.on('connection', (socket) => {
   });
 });
 
-const PORT = parseInt(process.env.API_PORT as string, 10) || 8080;
+const PORT = parseInt(process.env.PORT as string, 10) || parseInt(process.env.API_PORT as string, 10) || 8080;
 
 // ─── Middlewares globais (ORDEM IMPORTA) ────────────────────────
 // 1) Correlation ID PRIMEIRO, para todo log ter o id.
@@ -147,13 +147,18 @@ if (process.env.NODE_ENV !== 'test') {
       logger.info('[Redis] Conectado para cache!');
 
       // 2. Configuração do Redis para o Socket.io (Pub/Sub)
-      const pubClient = createClient({
-        password: process.env.REDIS_PASSWORD || undefined,
-        socket: {
-          host: process.env.REDIS_HOST || '127.0.0.1',
-          port: parseInt(process.env.REDIS_PORT as string) || 6379,
-        },
-      });
+      const redisOptions: any = process.env.REDIS_URL
+        ? { url: process.env.REDIS_URL }
+        : (process.env.REDIS_HOST?.startsWith('redis://') || process.env.REDIS_HOST?.startsWith('rediss://')
+           ? { url: process.env.REDIS_HOST }
+           : {
+               password: process.env.REDIS_PASSWORD || undefined,
+               socket: {
+                 host: process.env.REDIS_HOST || '127.0.0.1',
+                 port: parseInt(process.env.REDIS_PORT as string) || 6379,
+               }
+             });
+      const pubClient = createClient(redisOptions);
       const subClient = pubClient.duplicate();
 
       await Promise.all([pubClient.connect(), subClient.connect()]);
