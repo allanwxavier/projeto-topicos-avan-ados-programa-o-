@@ -126,6 +126,7 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=admin
       - RABBITMQ_PASSWORD=admin123
+      - JWT_SECRET=segredo_super_secreto_do_trabalho
     depends_on:
       mysql:
         condition: service_healthy
