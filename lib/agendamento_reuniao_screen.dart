@@ -356,10 +356,10 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: statusColor.withOpacity(0.4),
+                        color: statusColor.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Row(
@@ -694,7 +694,7 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
 
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           title: const Text('Editar Reunião'),
           content: SingleChildScrollView(
@@ -735,7 +735,7 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: const Text('Cancelar'),
             ),
             ElevatedButton(
@@ -748,12 +748,15 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
                   horaInicio: editHoraInicioCtrl.text,
                   horaFim: editHoraFimCtrl.text,
                 );
-                if (result != null && mounted) {
-                  Navigator.pop(context);
+                if (!dialogContext.mounted) return;
+                if (result != null) {
+                  Navigator.pop(dialogContext);
                   _carregarReunioes();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Reunião atualizada com sucesso')),
-                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Reunião atualizada com sucesso')),
+                    );
+                  }
                 }
               },
               child: const Text('Salvar'),
@@ -825,18 +828,20 @@ class _CreateReuniaoScreenState extends State<CreateReuniaoScreen> {
       // Recarrega a lista de reuniões
       await _carregarReunioes();
 
+      if (!mounted) return;
+
       // Fecha o formulário
       setState(() => _showForm = false);
 
       showDialog(
         context: context,
-        builder: (context) => AlertDialog(
+        builder: (dialogContext) => AlertDialog(
           title: const Text("Sucesso!"),
           content: const Text("Reunião agendada com sucesso."),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.pop(context); // Fecha o dialog
+                Navigator.pop(dialogContext); // Fecha o dialog
               },
               child: const Text("OK"),
             ),
