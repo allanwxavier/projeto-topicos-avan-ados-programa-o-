@@ -1,6 +1,6 @@
 {
   "name": "meetsync-backend",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Backend do sistema de agendamento de reuniões — projeto acadêmico",
   "main": "dist/server.js",
   "scripts": {
