@@ -17,7 +17,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - cqrs-net
+      - microsaas-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U meetsync"]
       interval: 5s
@@ -37,7 +37,7 @@ services:
     volumes:
       - mysqldata:/var/lib/mysql
     networks:
-      - cqrs-net
+      - microsaas-net
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -48,15 +48,15 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: cqrs_rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: admin
-      RABBITMQ_DEFAULT_PASS: admin123
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     ports:
       - "5672:5672"
       - "15672:15672"
     volumes:
       - rabbitmqdata:/var/lib/rabbitmq
     networks:
-      - cqrs-net
+      - microsaas-net
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "ping"]
       interval: 10s
@@ -72,7 +72,7 @@ services:
     volumes:
       - redisdata:/data
     networks:
-      - cqrs-net
+      - microsaas-net
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "admin123", "ping"]
       interval: 10s
@@ -91,7 +91,7 @@ services:
       - API_PORT=8081
       - NODE_ENV=development
       - DATABASE_URL=postgresql://meetsync:meetsync123@postgres:5432/meetsync?schema=public
-      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
       - JWT_SECRET=segredo_super_secreto_do_trabalho
       - REDIS_HOST=cqrs_redis
       - REDIS_PORT=6379
@@ -104,17 +104,17 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - cqrs-net
+      - microsaas-net
     restart: unless-stopped
 
   # 6. Laravel App (Read Model)
   laravel-app:
     build:
-      context: ../MicroSaas_To_do/php-service
+      context: ../todo-service/php-service
       dockerfile: Dockerfile
     container_name: cqrs_laravel_app
     volumes:
-      - ../MicroSaas_To_do/php-service:/var/www
+      - ../todo-service/php-service:/var/www
     environment:
       - DB_CONNECTION=mysql
       - DB_HOST=mysql
@@ -124,8 +124,8 @@ services:
       - DB_PASSWORD=laravel123
       - RABBITMQ_HOST=rabbitmq
       - RABBITMQ_PORT=5672
-      - RABBITMQ_USER=admin
-      - RABBITMQ_PASSWORD=admin123
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
       - JWT_SECRET=segredo_super_secreto_do_trabalho
     depends_on:
       mysql:
@@ -133,24 +133,86 @@ services:
       rabbitmq:
         condition: service_healthy
     networks:
-      cqrs-net:
+      microsaas-net:
         aliases:
           - app
     restart: unless-stopped
 
-  # 6. Nginx (Laravel webserver)
+  laravel-worker-reuniao:
+    build:
+      context: ../todo-service/php-service
+      dockerfile: Dockerfile
+    container_name: cqrs_laravel_worker_reuniao
+    command: php artisan rabbitmq:consume-reuniao-criada
+    volumes:
+      - ../todo-service/php-service:/var/www
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=microsaas
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=laravel123
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - JWT_SECRET=segredo_super_secreto_do_trabalho
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      laravel-app:
+        condition: service_started
+    networks:
+      - microsaas-net
+    restart: unless-stopped
+
+  laravel-worker-kanban:
+    build:
+      context: ../todo-service/php-service
+      dockerfile: Dockerfile
+    container_name: cqrs_laravel_worker_kanban
+    command: php artisan rabbitmq:consume-kanban-events
+    volumes:
+      - ../todo-service/php-service:/var/www
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=microsaas
+      - DB_USERNAME=laravel
+      - DB_PASSWORD=laravel123
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+      - JWT_SECRET=segredo_super_secreto_do_trabalho
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      laravel-app:
+        condition: service_started
+    networks:
+      - microsaas-net
+    restart: unless-stopped
+
+  # 7. Nginx (Laravel webserver)
   laravel-webserver:
     image: nginx:alpine
     container_name: cqrs_laravel_web
     ports:
       - "8000:80"
     volumes:
-      - ../MicroSaas_To_do/php-service:/var/www
-      - ../MicroSaas_To_do/php-service/docker-config/nginx:/etc/nginx/conf.d
+      - ../todo-service/php-service:/var/www
+      - ../todo-service/php-service/docker-config/nginx:/etc/nginx/conf.d
     depends_on:
       - laravel-app
     networks:
-      - cqrs-net
+      - microsaas-net
     restart: unless-stopped
 
   # 7. Prometheus
@@ -163,7 +225,7 @@ services:
       - prometheusdata:/prometheus
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
-      - cqrs-net
+      - microsaas-net
     restart: unless-stopped
 
   # 8. Grafana
@@ -175,7 +237,7 @@ services:
     volumes:
       - grafanadata:/var/lib/grafana
     networks:
-      - cqrs-net
+      - microsaas-net
     restart: unless-stopped
 
 volumes:
@@ -187,5 +249,5 @@ volumes:
   grafanadata:
 
 networks:
-  cqrs-net:
+  microsaas-net:
     driver: bridge

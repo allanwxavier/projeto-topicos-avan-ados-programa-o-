@@ -35,22 +35,25 @@ export class ReuniaoController {
       // PASSO 1: Gravar no Write Database (Node)
       const reuniao = await reuniaoService.criar(req.body);
 
-      // PASSO 2: Montar a estrutura Padrão do Evento (Idempotência)
+      // PASSO 2: Montar o contrato único do evento (payload plano)
+      let data_reuniao = reuniao.data;
+      if (!data_reuniao.includes('T')) {
+        data_reuniao = `${reuniao.data}T${reuniao.horaInicio}`;
+      }
+      try {
+        data_reuniao = new Date(data_reuniao).toISOString();
+      } catch (e) {
+        // Fallback se falhar ao fazer o parse da data
+      }
+
       const evento = {
-        eventId: crypto.randomUUID(),
-        tipo: 'ReuniaoCriadaEvent',
-        dataPublicacao: new Date().toISOString(),
-        payload: {
-          id: reuniao.id,
-          titulo: reuniao.assunto,
-          descricao: reuniao.local,
-          data: reuniao.data,
-          horaInicio: reuniao.horaInicio,
-          horaFim: reuniao.horaFim,
-        },
+        id: reuniao.id.toString(),
+        titulo: reuniao.assunto,
+        data_reuniao: data_reuniao,
+        organizador_nome: (req as any).user?.name || "Organizador Desconhecido",
       };
 
-      await RabbitMQService.enviarParaFila('reuniao_events', evento);
+      await RabbitMQService.enviarParaFila('reuniao_criada', evento);
 
       // MÉTRICA DE NEGÓCIO
       reunioesCriadasTotal.inc();

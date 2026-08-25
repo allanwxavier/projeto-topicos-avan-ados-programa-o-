@@ -91,11 +91,11 @@ graph TD
 *   **Reatividade:** Utiliza **Socket.io** para comunicação bidirecional com os clientes conectados, permitindo atualizações de tela instantâneas. O Socket.io usa o Redis como adapter de Pub/Sub para escalabilidade horizontal.
 
 ### 📖 Read Model (Leitura) — Laravel & MySQL
-*   **Tecnologia:** PHP 8.2+ com Laravel 11.
+*   **Tecnologia:** PHP 8.3 com Laravel 12.
 *   **Porta:** `8000` (através de um servidor Nginx que atua como proxy reverso para o PHP-FPM).
 *   **Persistência:** MySQL (via Eloquent ORM), porta exposta `3307`.
-*   **Comportamento:** Atua estritamente como modelo de leitura para garantir alta performance de busca e listagem.
-*   **Sincronização:** Consome os eventos do RabbitMQ emitidos pelo Write Model por meio de workers assíncronos. Ao receber um evento de criação ou alteração, atualiza a tabela desnormalizada de leitura (`cards_read`, `reunioes_read`).
+*   **Comportamento:** Kanban **READ-ONLY**. A API Laravel expõe apenas `GET /api/boards` e `GET /api/cards` (e equivalentes `show`). Mutações HTTP foram removidas.
+*   **Sincronização:** Workers Artisan consomem `reuniao_criada` (`rabbitmq:consume-reuniao-criada`) e `kanban_events` (`rabbitmq:consume-kanban-events`) e atualizam `reunioes_read` e `cards` (`source_id` = ID do Write Model).
 *   **Resiliência:** O consumo de filas e integrações externas no Laravel utiliza o **Circuit Breaker** (via biblioteca `Ackintosh Ganesha` armazenando estados no Redis) para evitar sobrecarga em caso de indisponibilidade de serviços de infraestrutura.
 
 ### 📱 Frontend — Flutter (Optimistic UI & Consistência Eventual)
